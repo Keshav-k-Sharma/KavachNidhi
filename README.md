@@ -47,7 +47,7 @@ Visibility drops below 200m during 4–10 AM → the entire morning shift is com
 </td>
 <td align="center" width="33%">
 
-### 🚦 GridlockGain
+### 🚦 TrafficBlock
 **₹2/min · max ₹120/day**
 
 Google Maps + TomTom confirm deep red + delivery platform confirms delay → ₹2 per minute of wasted time.
@@ -100,7 +100,7 @@ Google Maps + TomTom confirm deep red + delivery platform confirms delay → ₹
  
 🌀 CycloneGuard ✅
 🌫️ FogBlock ❌
-🚦 GridlockGain ❌
+🚦  ❌
  
 📈 Severity: 1.0x
 💸 Settlement: Sunday
@@ -115,7 +115,7 @@ Google Maps + TomTom confirm deep red + delivery platform confirms delay → ₹
  
 🌀 CycloneGuard ✅
 🌫️ FogBlock ✅
-🚦 GridlockGain ❌
+🚦 TrafficBlock ❌
  
 📈 Severity: 1.0x
 💸 Settlement: Instant wallet
@@ -130,7 +130,7 @@ Google Maps + TomTom confirm deep red + delivery platform confirms delay → ₹
  
 🌀 CycloneGuard ✅
 🌫️ FogBlock ✅
-🚦 GridlockGain ✅
+🚦 TrafficBlock ✅
  
 📈 Severity: **1.2x**
 💸 Settlement: Priority + Instant
@@ -161,7 +161,7 @@ risk_score = (location_risk × 0.4) + (trigger_frequency × 0.4) + (tier_risk ×
 |---|---|
 | `📍 location_risk` | Driver's city zone — coastal cyclone belt scores higher than inland |
 | `📊 trigger_frequency` | How often events actually fired for this driver in the last 90 days |
-| `🎚️ tier_risk` | Subscription tier exposure — Max unlocks GridlockGain which fires far more often |
+| `🎚️ tier_risk` | Subscription tier exposure — Max unlocks TrafficBlock which fires far more often |
 
 > ⚠️ A risk score of 1.0 = 1.5× the base rate. Weights are seeded manually at launch and retrained against real loss ratios after the Phase 1 pilot.
 
