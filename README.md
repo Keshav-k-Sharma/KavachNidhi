@@ -211,16 +211,15 @@ Flagged ≠ Rejected. A driver whose phone dropped signal in a storm goes into a
 **⚙️ Stack**
 
 ```
-📱 Mobile          React Native (iOS + Android)
-🖥️  Backend         Node.js microservices · AWS ECS Fargate · Apache Kafka
-🤖 AI / ML         Python · PyTorch · scikit-learn · AWS SageMaker
-🕸️  Fraud graph     Neo4j · real-time anomaly scoring
-🗄️  Databases       InfluxDB (time-series sensor data) · PostgreSQL RDS (transactions)
-💳 Payments        Razorpay UPI bulk payout · Cashfree NACH mandate
-🪪 KYC             DigiLocker Aadhaar OTP · CKYC registry
-📒 Audit ledger    AWS S3 Object Lock WORM · hash-chained entries
-📡 Monitoring      Datadog · Metabase fraud dashboard
-☁️  Infrastructure  AWS Mumbai (primary) · AWS Hyderabad (DR) · 99.9% SLA
+📱 Mobile          Flutter (iOS + Android · unified codebase)
+🖥️  Backend         Python FastAPI · microservices · BackgroundTasks async processing
+🤖 AI / ML         PyTorch · scikit-learn · served as internal FastAPI modules
+🕸️  Fraud graph     6-layer sensor fusion · graph-based collusion detection
+🗄️  Databases       InfluxDB (time-series sensor data) · PostgreSQL (transactions + audit ledger)
+💳 Payments        Razorpay · weekly premium collection + bulk UPI payouts
+🪪 KYC             manual verification with an Aadhar photograph
+📒 Audit ledger    Cryptographic hash-chain table in PostgreSQL · append-only · tamper-evident
+☁️  Infrastructure  Render / Vercel (FastAPI backend) 
 ```
 
 ---
