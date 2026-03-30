@@ -1,0 +1,69 @@
+# ============================================================
+# KavachNidhi — .gitignore (Backend)
+# ============================================================
+
+# ---------------------------
+# Personal team READMEs (internal working docs)
+# ---------------------------
+backend/readme.md
+backend/README.md
+backend/PRANJAL.md
+backend/KESHAV.md
+backend/ADWAITH.md
+
+# ---------------------------
+# Environment & Secrets
+# ---------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# ---------------------------
+# Python / FastAPI
+# ---------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+ENV/
+.Python
+pip-log.txt
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+nosetests.xml
+junit.xml
+
+# ---------------------------
+# IDEs & Editors
+# ---------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ---------------------------
+# Logs & Temp
+# ---------------------------
+*.log
+*.tmp
+*.temp
+logs/

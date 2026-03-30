@@ -1,0 +1,27 @@
+# Web framework
+fastapi
+uvicorn[standard]
+
+# Supabase
+supabase
+
+# Scheduling (KavachBrain 60s loop + Sunday settlement cron)
+apscheduler
+
+# Payments
+razorpay
+
+# HTTP client (OpenWeatherMap + TomTom)
+httpx
+
+# Data validation
+pydantic[email]
+pydantic-settings
+
+# Security
+python-jose[cryptography]
+passlib[bcrypt]
+
+# Utilities
+python-multipart
+python-dotenv
