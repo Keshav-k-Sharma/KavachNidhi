@@ -11,7 +11,7 @@ class KavachNidhiApp extends StatelessWidget {
       title: 'KavachNidhi',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme(),
-      initialRoute: AppRouter.loginRoute,
+      initialRoute: AppRouter.homeRoute,
       onGenerateRoute: AppRouter.onGenerateRoute,
     );
   }
