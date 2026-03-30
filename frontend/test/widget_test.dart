@@ -1,30 +1,39 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:frontend/main.dart';
+import 'package:frontend/app.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('renders login screen content', (WidgetTester tester) async {
+    await tester.pumpWidget(const KavachNidhiApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('Welcome Back'), findsOneWidget);
+    expect(find.text('REQUEST OTP'), findsOneWidget);
+    expect(find.text("Don't have an account?"), findsOneWidget);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  testWidgets('navigates from login to signup', (WidgetTester tester) async {
+    await tester.pumpWidget(const KavachNidhiApp());
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.tap(find.text('Sign up'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Join'), findsOneWidget);
+    expect(find.textContaining('KavachNidhi'), findsWidgets);
+    expect(find.text('CREATE ACCOUNT'), findsOneWidget);
+  });
+
+  testWidgets('navigates from signup back to login', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const KavachNidhiApp());
+
+    await tester.tap(find.text('Sign up'));
+    await tester.pumpAndSettle();
+    final Finder loginLink = find.text('Log in');
+    await tester.ensureVisible(loginLink);
+    await tester.pumpAndSettle();
+    await tester.tap(loginLink);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome Back'), findsOneWidget);
   });
 }
