@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.services.settlements.cron_service import start_scheduler, stop_scheduler
-
+from app.api.wallet.router import router as wallet_router
+from app.api.payments.router import router as payments_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -9,7 +10,12 @@ async def lifespan(app: FastAPI):
     yield
     stop_scheduler()
 
+
 app = FastAPI()
+
+app.include_router(wallet_router)
+app.include_router(payments_router)
+
 
 @app.get("/")
 def root():
