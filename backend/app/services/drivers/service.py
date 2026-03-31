@@ -30,7 +30,10 @@ def update_driver(user_id: str, body: DriverProfileUpdateRequest) -> dict:
 
 
 def get_risk_score(user_id: str) -> float:
-    result = supabase.table("risk_scores").select("score").eq("driver_id", user_id).maybe_single().execute()
-    if result.data:
-        return result.data["score"]
+    try:
+        result = supabase.table("risk_scores").select("score").eq("driver_id", user_id).limit(1).execute()
+        if result.data:
+            return result.data[0]["score"]
+    except Exception:
+        pass
     return 0.5
