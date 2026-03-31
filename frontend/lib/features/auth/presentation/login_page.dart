@@ -38,9 +38,24 @@ class _LoginPageState extends State<LoginPage> {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
+    final bool shouldGoToDashboard = AppRouter.canShowDashboard;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('OTP sent to +91 ${_mobileController.text.trim()}'),
+      ),
+    );
+
+    if (shouldGoToDashboard) {
+      Navigator.of(context).pushReplacementNamed(AppRouter.homeRoute);
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Demo dashboard path disabled. Please continue with production auth flow.',
+        ),
       ),
     );
   }
