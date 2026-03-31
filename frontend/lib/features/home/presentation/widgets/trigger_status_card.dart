@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:frontend/features/home/data/dashboard_mock_data.dart';
+import 'package:frontend/features/home/data/dashboard_snapshot.dart';
 
 class TriggerStatusCard extends StatelessWidget {
   const TriggerStatusCard({
@@ -16,70 +16,74 @@ class TriggerStatusCard extends StatelessWidget {
     final Color accent = trigger.color;
 
     return Container(
-      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
+        border: Border(
+          left: BorderSide(color: accent, width: 4),
+        ),
       ),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: accent.withValues(alpha: 0.16),
-            child: Icon(
-              trigger.icon,
-              color: accent,
-              size: 20,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Icon(trigger.icon, color: accent, size: 20),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+                child: Text(
+                  trigger.intensity,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: accent,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            trigger.title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.2,
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  trigger.title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  trigger.condition,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    letterSpacing: 0.2,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  trigger.detail,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    letterSpacing: 0.1,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 4),
+          Text(
+            trigger.detail,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              letterSpacing: 0.1,
             ),
           ),
-          const SizedBox(width: 12),
+          const Spacer(),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            height: 4,
+            clipBehavior: Clip.hardEdge,
             decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.14),
+              color: theme.colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(
-              trigger.intensity,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: accent,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.4,
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: trigger.progress.clamp(0.0, 1.0),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
+          const SizedBox(height: 16),
         ],
       ),
     );
