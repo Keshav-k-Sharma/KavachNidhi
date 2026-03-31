@@ -1,7 +1,7 @@
 import hashlib
 import json
 from datetime import datetime, timezone
-from app.database import supabase
+from app.database import db
 
 
 def compute_hash(entry: dict, prev_hash: str) -> str:
@@ -10,7 +10,7 @@ def compute_hash(entry: dict, prev_hash: str) -> str:
 
 
 def get_last_entry() -> dict | None:
-    result = supabase.table("audit_ledger") \
+    result = db.table("audit_ledger") \
         .select("*") \
         .order("created_at", desc=True) \
         .limit(1) \
@@ -36,7 +36,7 @@ def append(entry_type: str, driver_id: str | None, amount: float | None, referen
 
     entry_hash = compute_hash(entry, prev_hash)
 
-    result = supabase.table("audit_ledger").insert({
+    result = db.table("audit_ledger").insert({
         **entry,
         "entry_hash": entry_hash,
         "prev_hash": prev_hash,
@@ -46,7 +46,7 @@ def append(entry_type: str, driver_id: str | None, amount: float | None, referen
 
 
 def verify_entry(entry_id: str) -> dict:
-    result = supabase.table("audit_ledger") \
+    result = db.table("audit_ledger") \
         .select("*") \
         .eq("id", entry_id) \
         .single() \
