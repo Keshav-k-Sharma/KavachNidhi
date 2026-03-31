@@ -9,17 +9,7 @@ def get_driver_id(authorization: str = Header(...)) -> str:
     response = supabase.auth.get_user(token)
     if not response.user:
         raise HTTPException(status_code=401, detail="Invalid token")
-
-    driver = db.table("drivers") \
-        .select("id") \
-        .eq("phone", response.user.phone) \
-        .single() \
-        .execute()
-
-    if not driver.data:
-        raise HTTPException(status_code=404, detail="Driver not found")
-
-    return driver.data["id"]
+    return str(response.user.id)
 
 
 @router.get("/balance")

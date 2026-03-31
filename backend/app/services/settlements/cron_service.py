@@ -40,8 +40,8 @@ def start_scheduler():
         run_settlement,
         trigger=CronTrigger(
             day_of_week="sun",
-            hour=12,
-            minute=30,
+            hour=13,
+            minute=0,
             timezone="UTC"
         ),
         id="sunday_settlement",

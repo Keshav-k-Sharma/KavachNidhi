@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
-from app.database import supabase
+from app.database import db
 from app.services.payments.razorpay_service import get_razorpay_service
 from app.services.audit.ledger_service import append as ledger_append
 
 
 def get_driver_credits(driver_id: str) -> float:
-    result = supabase.table("driver_trigger_logs") \
+    result = db.table("driver_trigger_logs") \
         .select("credits_awarded") \
         .eq("driver_id", driver_id) \
         .eq("status", "awarded") \
@@ -19,7 +19,7 @@ def get_driver_credits(driver_id: str) -> float:
 
 
 def get_active_drivers() -> list:
-    result = supabase.table("subscriptions") \
+    result = db.table("subscriptions") \
         .select("driver_id, drivers(upi_id)") \
         .eq("status", "active") \
         .execute()
@@ -28,7 +28,7 @@ def get_active_drivers() -> list:
 
 
 def create_settlement_run(run_type: str) -> dict:
-    result = supabase.table("settlement_runs").insert({
+    result = db.table("settlement_runs").insert({
         "run_type": run_type,
         "status": "running",
         "triggered_at": datetime.now(timezone.utc).isoformat(),
@@ -40,7 +40,7 @@ def create_settlement_run(run_type: str) -> dict:
 
 
 def update_settlement_run(run_id: str, total_drivers: int, total_amount: float, status: str):
-    supabase.table("settlement_runs").update({
+    db.table("settlement_runs").update({
         "total_drivers": total_drivers,
         "total_amount": total_amount,
         "status": status,
@@ -54,7 +54,7 @@ def settle_driver(driver_id: str, upi_id: str, amount: float, run_id: str):
     amount_paise = int(amount * 100)
     payout_response = razorpay.create_payout(upi_id, amount_paise, driver_id)
 
-    payout_result = supabase.table("payouts").insert({
+    payout_result = db.table("payouts").insert({
         "driver_id": driver_id,
         "settlement_run_id": run_id,
         "amount": amount,
@@ -64,13 +64,13 @@ def settle_driver(driver_id: str, upi_id: str, amount: float, run_id: str):
         "processed_at": datetime.now(timezone.utc).isoformat(),
     }).execute()
 
-    supabase.table("wallets").update({
+    db.table("wallets").update({
         "shield_credits": 0.0,
         "last_settled_at": datetime.now(timezone.utc).isoformat(),
         "last_settlement_amount": amount,
     }).eq("driver_id", driver_id).execute()
 
-    supabase.table("wallet_transactions").insert({
+    db.table("wallet_transactions").insert({
         "driver_id": driver_id,
         "type": "settlement",
         "amount": amount,
@@ -84,6 +84,9 @@ def settle_driver(driver_id: str, upi_id: str, amount: float, run_id: str):
         reference_id=payout_result.data[0]["id"],
         description=f"Settlement payout to {upi_id}"
     )
+    db.table("driver_trigger_logs").update({
+    "status": "settled"
+    }).eq("driver_id", driver_id).eq("status", "awarded").execute()
 
 
 def run_settlement(run_type: str = "scheduled") -> dict:

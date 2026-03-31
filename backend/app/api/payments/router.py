@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Header, HTTPException, Request
-from app.database import supabase
+from app.database import db
 from app.services.payments.razorpay_service import get_razorpay_service
 from app.api.wallet.router import get_driver_id
 
@@ -11,7 +11,7 @@ def create_mandate(authorization: str = Header(...)):
     try:
         driver_id = get_driver_id(authorization)
 
-        subscription = supabase.table("subscriptions") \
+        subscription = db.table("subscriptions") \
             .select("*") \
             .eq("driver_id", driver_id) \
             .eq("status", "active") \
@@ -26,7 +26,7 @@ def create_mandate(authorization: str = Header(...)):
             plan_id=subscription.data["razorpay_sub_id"] or "plan_mock_001"
         )
 
-        mandate = supabase.table("razorpay_mandates").upsert({
+        mandate = db.table("razorpay_mandates").upsert({
             "driver_id": driver_id,
             "razorpay_sub_id": rz_subscription["id"],
             "status": "pending",
@@ -46,7 +46,7 @@ def get_mandate_status(authorization: str = Header(...)):
     try:
         driver_id = get_driver_id(authorization)
 
-        mandate = supabase.table("razorpay_mandates") \
+        mandate = db.table("razorpay_mandates") \
             .select("*") \
             .eq("driver_id", driver_id) \
             .single() \
@@ -70,7 +70,7 @@ def get_payment_history(authorization: str = Header(...), page: int = 1, limit: 
 
         offset = (page - 1) * limit
 
-        payments = supabase.table("premium_payments") \
+        payments = db.table("premium_payments") \
             .select("*") \
             .eq("driver_id", driver_id) \
             .order("created_at", desc=True) \
@@ -102,7 +102,7 @@ async def razorpay_webhook(request: Request):
 
         if event_type == "subscription.charged":
             payment = event["payload"]["payment"]["entity"]
-            driver_mandate = supabase.table("razorpay_mandates") \
+            driver_mandate = db.table("razorpay_mandates") \
                 .select("driver_id") \
                 .eq("razorpay_sub_id", payment.get("subscription_id")) \
                 .single() \
@@ -110,7 +110,7 @@ async def razorpay_webhook(request: Request):
 
             if driver_mandate.data:
                 driver_id = driver_mandate.data["driver_id"]
-                supabase.table("premium_payments").insert({
+                db.table("premium_payments").insert({
                     "driver_id": driver_id,
                     "amount": payment["amount"] / 100,
                     "razorpay_payment_id": payment["id"],
