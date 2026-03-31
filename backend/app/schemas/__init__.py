@@ -33,14 +33,12 @@ class VerifyOTPRequest(BaseModel):
 
 class DriverRegisterRequest(BaseModel):
     name: str
-    city: str
-    zone_id: str        # UUID of city_zones row
+    zone_id: str        # UUID of city_zones row — city derived from this
     upi_id: Optional[str] = None
 
 
 class DriverProfileUpdateRequest(BaseModel):
     name: Optional[str] = None
-    city: Optional[str] = None
     zone_id: Optional[str] = None
     upi_id: Optional[str] = None
 

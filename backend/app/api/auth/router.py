@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from app.database import supabase
 from app.schemas import SendOTPRequest, VerifyOTPRequest, ok, err
+from app.services.auth import service
 
 router = APIRouter()
 
@@ -8,7 +8,7 @@ router = APIRouter()
 @router.post("/send-otp")
 def send_otp(body: SendOTPRequest):
     try:
-        supabase.auth.sign_in_with_otp({"phone": body.phone})
+        service.send_otp(body.phone)
         return ok()
     except Exception as e:
         return err(str(e))
@@ -17,14 +17,7 @@ def send_otp(body: SendOTPRequest):
 @router.post("/verify-otp")
 def verify_otp(body: VerifyOTPRequest):
     try:
-        response = supabase.auth.verify_otp({
-            "phone": body.phone,
-            "token": body.otp,
-            "type": "sms",
-        })
-        return ok({
-            "access_token": response.session.access_token,
-            "user_id": str(response.user.id),
-        })
+        data = service.verify_otp(body.phone, body.otp)
+        return ok(data)
     except Exception as e:
         return err(str(e))
