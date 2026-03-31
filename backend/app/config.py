@@ -1,12 +1,26 @@
-from dotenv import load_dotenv
-import os
+from pydantic_settings import BaseSettings
 
 
-load_dotenv()
+class Settings(BaseSettings):
+    SUPABASE_URL: str
+    SUPABASE_SERVICE_ROLE_KEY: str
+    SUPABASE_STORAGE_BUCKET: str = "kyc-documents"
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
-RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
-RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET")
-USE_MOCK_PAYMENTS = os.getenv("USE_MOCK_PAYMENTS", "false").lower() == "true"
+    RAZORPAY_KEY_ID: str = ""
+    RAZORPAY_KEY_SECRET: str = ""
+    RAZORPAY_WEBHOOK_SECRET: str = ""
+
+    OPENWEATHERMAP_API_KEY: str = ""
+    TOMTOM_API_KEY: str = ""
+
+    USE_MOCK_PAYMENTS: bool = False
+    USE_MOCK_WEATHER: bool = False
+    USE_MOCK_TRAFFIC: bool = False
+
+    KAVACHBRAIN_INTERVAL_SECONDS: int = 60
+
+    class Config:
+        env_file = ".env"
+
+
+settings = Settings()

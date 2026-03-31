@@ -1,7 +1,12 @@
 import razorpay
 import hmac
 import hashlib
-from app.config import RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET, USE_MOCK_PAYMENTS
+from app.config import settings
+
+RAZORPAY_KEY_ID = settings.RAZORPAY_KEY_ID
+RAZORPAY_KEY_SECRET = settings.RAZORPAY_KEY_SECRET
+RAZORPAY_WEBHOOK_SECRET = settings.RAZORPAY_WEBHOOK_SECRET
+USE_MOCK_PAYMENTS = settings.USE_MOCK_PAYMENTS
 
 
 class RazorpayService:
