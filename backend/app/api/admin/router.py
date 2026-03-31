@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Header, HTTPException
-from app.database import supabase
+from app.database import supabase,db
 from app.api.wallet.router import get_driver_id
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -10,16 +10,16 @@ def get_stats(authorization: str = Header(...)):
     try:
         get_driver_id(authorization)
 
-        total_drivers = supabase.table("drivers") \
+        total_drivers = db.table("drivers") \
             .select("id", count="exact") \
             .execute()
 
-        total_paid = supabase.table("settlement_runs") \
+        total_paid = db.table("settlement_runs") \
             .select("total_amount") \
             .eq("status", "completed") \
             .execute()
 
-        active_triggers = supabase.table("trigger_events") \
+        active_triggers = db.table("trigger_events") \
             .select("id", count="exact") \
             .gte("expires_at", "now()") \
             .execute()
@@ -47,7 +47,7 @@ def get_fraud_queue(authorization: str = Header(...), page: int = 1, limit: int 
 
         offset = (page - 1) * limit
 
-        queue = supabase.table("fraud_review_queue") \
+        queue = db.table("fraud_review_queue") \
             .select("*, fraud_flags(reason, detection_layer, severity)") \
             .eq("status", "pending") \
             .order("created_at", desc=True) \

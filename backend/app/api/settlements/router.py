@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Header, HTTPException
-from app.database import supabase
+from app.database import db
 from app.services.settlements.settlement_service import run_settlement, get_driver_credits
 from app.api.wallet.router import get_driver_id
 
@@ -31,7 +31,7 @@ def get_settlement_history(authorization: str = Header(...), page: int = 1, limi
 
         offset = (page - 1) * limit
 
-        payouts = supabase.table("payouts") \
+        payouts = db.table("payouts") \
             .select("*, settlement_runs(triggered_at, run_type)") \
             .eq("driver_id", driver_id) \
             .order("created_at", desc=True) \

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Header, HTTPException
-from app.database import supabase
+from app.database import db
 from app.services.audit.ledger_service import verify_entry
 from app.api.wallet.router import get_driver_id
 
@@ -13,7 +13,7 @@ def get_ledger(authorization: str = Header(...), page: int = 1, limit: int = 20)
 
         offset = (page - 1) * limit
 
-        entries = supabase.table("audit_ledger") \
+        entries = db.table("audit_ledger") \
             .select("*") \
             .eq("driver_id", driver_id) \
             .order("created_at", desc=True) \

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Header, HTTPException
-from app.database import supabase
+from app.database import supabase,db
 
 router = APIRouter(prefix="/wallet", tags=["Wallet"])
 
@@ -10,7 +10,7 @@ def get_driver_id(authorization: str = Header(...)) -> str:
     if not response.user:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    driver = supabase.table("drivers") \
+    driver = db.table("drivers") \
         .select("id") \
         .eq("phone", response.user.phone) \
         .single() \
@@ -27,7 +27,7 @@ def get_balance(authorization: str = Header(...)):
     try:
         driver_id = get_driver_id(authorization)
 
-        wallet = supabase.table("wallets") \
+        wallet = db.table("wallets") \
             .select("*") \
             .eq("driver_id", driver_id) \
             .single() \
@@ -51,7 +51,7 @@ def get_transactions(authorization: str = Header(...), page: int = 1, limit: int
 
         offset = (page - 1) * limit
 
-        transactions = supabase.table("wallet_transactions") \
+        transactions = db.table("wallet_transactions") \
             .select("*") \
             .eq("driver_id", driver_id) \
             .order("created_at", desc=True) \
@@ -75,7 +75,7 @@ def update_upi(upi_data: dict, authorization: str = Header(...)):
         if not upi_id:
             raise HTTPException(status_code=400, detail="upi_id is required")
 
-        result = supabase.table("drivers") \
+        result = db.table("drivers") \
             .update({"upi_id": upi_id}) \
             .eq("id", driver_id) \
             .execute()
