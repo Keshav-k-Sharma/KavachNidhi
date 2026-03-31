@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/features/home/presentation/home_dashboard_page.dart';
 import 'package:frontend/features/auth/presentation/login_page.dart';
 import 'package:frontend/features/auth/presentation/signup_page.dart';
+import 'package:frontend/features/home/presentation/main_shell_page.dart';
 
 class AppRouter {
   static const String loginRoute = '/login';
@@ -26,7 +26,7 @@ class AppRouter {
       case homeRoute:
         return MaterialPageRoute<void>(
           builder: (_) =>
-              canShowDashboard ? HomeDashboardPage.route() : const LoginPage(),
+              canShowDashboard ? MainShellPage.route() : const LoginPage(),
           settings: settings,
         );
       default:
