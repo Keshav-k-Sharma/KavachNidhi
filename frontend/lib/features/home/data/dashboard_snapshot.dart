@@ -116,6 +116,45 @@ class DashboardSnapshot {
   final String autoTransferMessage;
   final String verificationStreamLabel;
   final String systemTagline;
+
+  DashboardSnapshot copyWith({
+    int? totalCredits,
+    int? pendingCredits,
+    int? clearedCredits,
+  }) {
+    return DashboardSnapshot(
+      planName: planName,
+      systemStatusLabel: systemStatusLabel,
+      systemStatusValue: systemStatusValue,
+      sensorStatusLabel: sensorStatusLabel,
+      sensorStatusValue: sensorStatusValue,
+      triggers: triggers,
+      totalCredits: totalCredits ?? this.totalCredits,
+      pendingCredits: pendingCredits ?? this.pendingCredits,
+      clearedCredits: clearedCredits ?? this.clearedCredits,
+      shieldCreditsHeader: shieldCreditsHeader,
+      pendingCreditsLabel: pendingCreditsLabel,
+      pendingCreditsCaption: pendingCreditsCaption,
+      clearedCreditsLabel: clearedCreditsLabel,
+      clearedCreditsCaption: clearedCreditsCaption,
+      redeemCreditsLabel: redeemCreditsLabel,
+      nextSettlementDate: nextSettlementDate,
+      settlementTime: settlementTime,
+      countdownDays: countdownDays,
+      countdownHours: countdownHours,
+      countdownMinutes: countdownMinutes,
+      countdownDaysLabel: countdownDaysLabel,
+      countdownHoursLabel: countdownHoursLabel,
+      countdownMinutesLabel: countdownMinutesLabel,
+      cycleProgressPercent: cycleProgressPercent,
+      cycleProgressLabel: cycleProgressLabel,
+      verificationEvents: verificationEvents,
+      settlementStatusLabel: settlementStatusLabel,
+      autoTransferMessage: autoTransferMessage,
+      verificationStreamLabel: verificationStreamLabel,
+      systemTagline: systemTagline,
+    );
+  }
 }
 
 class TriggerStatusCardModel {

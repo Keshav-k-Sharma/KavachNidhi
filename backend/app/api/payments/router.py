@@ -1,15 +1,15 @@
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+
+from app.api.deps import get_driver_id
 from app.database import supabase
 from app.services.payments.razorpay_service import get_razorpay_service
-from app.api.wallet.router import get_driver_id
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
 
 @router.post("/mandate/create")
-def create_mandate(authorization: str = Header(...)):
+def create_mandate(driver_id: str = Depends(get_driver_id)):
     try:
-        driver_id = get_driver_id(authorization)
 
         subscription = supabase.table("subscriptions") \
             .select("*") \
@@ -42,9 +42,8 @@ def create_mandate(authorization: str = Header(...)):
 
 
 @router.get("/mandate/status")
-def get_mandate_status(authorization: str = Header(...)):
+def get_mandate_status(driver_id: str = Depends(get_driver_id)):
     try:
-        driver_id = get_driver_id(authorization)
 
         mandate = supabase.table("razorpay_mandates") \
             .select("*") \
@@ -64,9 +63,12 @@ def get_mandate_status(authorization: str = Header(...)):
 
 
 @router.get("/history")
-def get_payment_history(authorization: str = Header(...), page: int = 1, limit: int = 20):
+def get_payment_history(
+    driver_id: str = Depends(get_driver_id),
+    page: int = 1,
+    limit: int = 20,
+):
     try:
-        driver_id = get_driver_id(authorization)
 
         offset = (page - 1) * limit
 
