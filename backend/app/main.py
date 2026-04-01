@@ -41,6 +41,6 @@ app.include_router(audit_router)
 app.include_router(admin_router)
 
 
-@app.get("/health")
+@app.head("/health")
 def health():
     return {"status": "ok"}
