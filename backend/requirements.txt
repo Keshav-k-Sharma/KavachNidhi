@@ -19,7 +19,9 @@ idna==3.11
 packaging==26.0
 postgrest==0.15.1
 pydantic==2.12.5
+pydantic-settings==2.13.1
 pydantic_core==2.41.5
+python-multipart==0.0.22
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
 razorpay==2.0.1

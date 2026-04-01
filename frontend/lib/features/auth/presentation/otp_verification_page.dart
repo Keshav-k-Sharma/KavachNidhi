@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:frontend/core/auth/auth_controller.dart';
-import 'package:frontend/core/auth/phone_format.dart';
 import 'package:frontend/core/router/app_router.dart';
 import 'package:frontend/features/auth/presentation/widgets/auth_brand_header.dart';
 import 'package:frontend/features/auth/presentation/widgets/auth_text_field.dart';
@@ -26,8 +25,6 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _otpController = TextEditingController();
   bool _submitting = false;
-
-  String get _phoneE164 => indiaMobileToE164(widget.phoneDigits);
 
   @override
   void dispose() {
@@ -54,7 +51,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
     try {
       final AuthController auth = context.read<AuthController>();
       await auth.signInWithOtp(
-        phoneE164: _phoneE164,
+        phoneDigits: widget.phoneDigits,
         otp: _otpController.text.trim(),
       );
       if (!mounted) {

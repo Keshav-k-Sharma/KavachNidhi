@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:frontend/core/auth/auth_controller.dart';
-import 'package:frontend/core/auth/phone_format.dart';
 import 'package:frontend/core/router/app_router.dart';
 import 'package:frontend/features/auth/presentation/widgets/auth_brand_header.dart';
 import 'package:frontend/features/auth/presentation/widgets/auth_feature_tile.dart';
@@ -45,9 +44,8 @@ class _LoginPageState extends State<LoginPage> {
     }
     setState(() => _sending = true);
     final String digits = _mobileController.text.trim();
-    final String e164 = indiaMobileToE164(digits);
     try {
-      await context.read<AuthController>().requestOtp(e164);
+      await context.read<AuthController>().requestOtp(digits);
       if (!mounted) {
         return;
       }
