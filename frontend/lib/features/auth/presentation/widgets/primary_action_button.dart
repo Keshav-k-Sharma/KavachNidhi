@@ -9,7 +9,7 @@ class PrimaryActionButton extends StatelessWidget {
   });
 
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final IconData? icon;
 
   static const Color _primaryDim = Color(0xFF0F6DF3);
@@ -18,7 +18,10 @@ class PrimaryActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final bool enabled = onPressed != null;
+    return Opacity(
+      opacity: enabled ? 1 : 0.5,
+      child: Container(
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
@@ -59,6 +62,7 @@ class PrimaryActionButton extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

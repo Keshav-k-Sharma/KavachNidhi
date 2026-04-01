@@ -292,6 +292,9 @@ cd frontend
 flutter pub get
 flutter run
 
+# Optional: non-default API base (default is http://127.0.0.1:8000)
+# flutter run --dart-define=API_BASE_URL=https://your-api.example.com
+
 # Run tests
 flutter test
 ```

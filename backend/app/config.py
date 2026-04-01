@@ -6,6 +6,9 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str
     SUPABASE_STORAGE_BUCKET: str = "kyc-documents"
 
+    # Comma-separated E.164 phones allowed to call admin / manual settlement APIs.
+    ADMIN_PHONES: str = ""
+
     RAZORPAY_KEY_ID: str = ""
     RAZORPAY_KEY_SECRET: str = ""
     RAZORPAY_WEBHOOK_SECRET: str = ""

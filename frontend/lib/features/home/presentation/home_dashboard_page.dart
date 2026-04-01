@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import 'package:frontend/core/auth/auth_controller.dart';
 import 'package:frontend/features/home/data/dashboard_snapshot.dart';
+import 'package:frontend/features/home/data/wallet_api.dart';
 import 'package:frontend/features/home/presentation/widgets/trigger_status_card.dart';
 
 class HomeDashboardPage extends StatefulWidget {
@@ -901,16 +904,52 @@ class _GradientProgressBar extends StatelessWidget {
 
 // ─── Loader ───────────────────────────────────────────────────────────────────
 
-class _HomeDashboardLoader extends StatelessWidget {
+class _HomeDashboardLoader extends StatefulWidget {
   const _HomeDashboardLoader();
+
+  @override
+  State<_HomeDashboardLoader> createState() => _HomeDashboardLoaderState();
+}
+
+class _HomeDashboardLoaderState extends State<_HomeDashboardLoader> {
+  Future<DashboardSnapshot>? _future;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _future ??= _loadDashboard();
+  }
+
+  Future<DashboardSnapshot> _loadDashboard() async {
+    final AuthController auth =
+        Provider.of<AuthController>(context, listen: false);
+    final DashboardSnapshot base = await loadDashboardSnapshot();
+    if (!auth.isAuthenticated) {
+      return base;
+    }
+    try {
+      final Map<String, dynamic>? wallet =
+          await fetchWalletBalance(auth.apiClient);
+      if (wallet == null) {
+        return base;
+      }
+      final Object? shieldRaw = wallet['shield_credits'];
+      if (shieldRaw is num) {
+        return base.copyWith(totalCredits: shieldRaw.round());
+      }
+    } catch (_) {}
+    return base;
+  }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<DashboardSnapshot>(
-      future: loadDashboardSnapshot(),
+      future: _future,
       builder: (BuildContext context, AsyncSnapshot<DashboardSnapshot> snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
 
         if (snapshot.hasError || !snapshot.hasData) {

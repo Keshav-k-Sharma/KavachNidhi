@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import 'package:frontend/core/auth/auth_controller.dart';
+import 'package:frontend/core/router/app_router.dart';
 import 'package:frontend/features/home/presentation/home_dashboard_page.dart';
 
 class MainShellPage extends StatefulWidget {
@@ -22,7 +25,7 @@ class _MainShellPageState extends State<MainShellPage> {
         children: const <Widget>[
           _DashboardTab(),
           _PlaceholderTab(title: 'Subscriptions', icon: Icons.loyalty_rounded),
-          _PlaceholderTab(title: 'Profile', icon: Icons.person_rounded),
+          _ProfileTab(),
           _PlaceholderTab(title: 'Wallet', icon: Icons.account_balance_wallet_rounded),
         ],
       ),
@@ -169,6 +172,64 @@ class _DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => HomeDashboardPage.route();
+}
+
+class _ProfileTab extends StatelessWidget {
+  const _ProfileTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Text(
+                'Profile',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.logout_rounded,
+                  color: theme.colorScheme.error,
+                ),
+                title: Text(
+                  'Log out',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+                subtitle: Text(
+                  'Sign out on this device',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                onTap: () async {
+                  await context.read<AuthController>().logout();
+                  if (!context.mounted) {
+                    return;
+                  }
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    AppRouter.loginRoute,
+                    (Route<dynamic> route) => false,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _PlaceholderTab extends StatelessWidget {
