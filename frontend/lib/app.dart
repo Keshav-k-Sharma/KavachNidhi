@@ -35,11 +35,25 @@ class _KavachNidhiAppState extends State<KavachNidhiApp> {
       apiClient: client,
       authRepository: repo,
     );
-    await controller.bootstrap();
     if (!mounted) {
       return;
     }
     setState(() => _auth = controller);
+    await controller.bootstrap();
+    if (!mounted) {
+      return;
+    }
+    if (controller.isAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        appNavigatorKey.currentState?.pushNamedAndRemoveUntil(
+          AppRouter.homeRoute,
+          (Route<dynamic> route) => false,
+        );
+      });
+    }
   }
 
   @override
@@ -54,21 +68,16 @@ class _KavachNidhiAppState extends State<KavachNidhiApp> {
       );
     }
 
+    // Always start at /login after splash; restored sessions navigate to /home in _bootstrap.
     return ChangeNotifierProvider<AuthController>.value(
       value: _auth!,
-      child: Consumer<AuthController>(
-        builder: (BuildContext context, AuthController auth, _) {
-          return MaterialApp(
-            navigatorKey: appNavigatorKey,
-            title: 'KavachNidhi',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.darkTheme(),
-            initialRoute: auth.isAuthenticated
-                ? AppRouter.homeRoute
-                : AppRouter.loginRoute,
-            onGenerateRoute: AppRouter.onGenerateRoute,
-          );
-        },
+      child: MaterialApp(
+        navigatorKey: appNavigatorKey,
+        title: 'KavachNidhi',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.darkTheme(),
+        initialRoute: AppRouter.loginRoute,
+        onGenerateRoute: AppRouter.onGenerateRoute,
       ),
     );
   }

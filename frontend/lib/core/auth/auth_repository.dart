@@ -8,7 +8,7 @@ class AuthRepository {
 
   final ApiClient client;
 
-  /// [phone] must be E.164, e.g. +919876543210.
+  /// [phone] is 10-digit Indian mobile without country code, e.g. 9876543210.
   Future<void> sendOtp(String phone) async {
     final http.Response res = await client.postJson(
       '/auth/send-otp',
@@ -22,6 +22,7 @@ class AuthRepository {
   }
 
   /// Returns access token and user id from verify-otp.
+  /// [phone] matches [sendOtp]: 10-digit local number without country code.
   Future<({String accessToken, String userId})> verifyOtp({
     required String phone,
     required String otp,
