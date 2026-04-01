@@ -1,10 +1,3 @@
-"""
-Run from the repo root:
-    python -m app.services.risk.train.train_model
-
-The trained model is saved to:
-    app/services/risk/models/risk_model.pkl
-"""
 
 import os
 import pickle
@@ -13,7 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, r2_score
 
-# ── Paths ───────────────────────────────────────────────────────────────────
+# ── Paths ─────────────────────────────────────────────────────────────────────
 
 MODELS_DIR = os.path.join(os.path.dirname(__file__), "..", "models")
 MODEL_PATH = os.path.join(MODELS_DIR, "risk_model.pkl")
@@ -22,35 +15,37 @@ MODEL_PATH = os.path.join(MODELS_DIR, "risk_model.pkl")
 
 N_SAMPLES = 10_000
 RANDOM_SEED = 42
-NOISE_STD = 0.03         
+NOISE_STD = 0.03
 
 
 def generate_synthetic_data(n_samples: int = N_SAMPLES, seed: int = RANDOM_SEED):
-    
     rng = np.random.default_rng(seed)
 
-    zone_risk          = rng.uniform(0.0, 1.0, n_samples)
-    trigger_frequency  = rng.uniform(0.0, 1.0, n_samples)
-    avg_payout         = rng.uniform(50.0, 200.0, n_samples)
-    tier               = rng.choice([0.2, 0.5, 1.0], size=n_samples)
+    zone_risk         = rng.uniform(0.0, 1.0, n_samples)
+    trigger_frequency = rng.uniform(0.0, 1.0, n_samples)
+    avg_payout_raw    = rng.uniform(50.0, 200.0, n_samples)
+    tier_raw          = rng.choice([0.2, 0.5, 1.0], size=n_samples)
+
+    avg_payout_norm = (avg_payout_raw - 50.0) / 150.0   # [0, 1]
+    tier_norm       = (tier_raw - 0.2) / 0.8            # [0, 1]
 
     noise = rng.normal(0, NOISE_STD, n_samples)
 
     risk_score = (
-        0.5 * zone_risk
-        + 0.3 * trigger_frequency
-        + 0.2 * (avg_payout / 200.0)
+        0.45 * zone_risk
+        + 0.30 * trigger_frequency
+        + 0.15 * avg_payout_norm
+        + 0.10 * tier_norm
         + noise
     )
     risk_score = np.clip(risk_score, 0.0, 1.0)
 
-    X = np.column_stack([zone_risk, trigger_frequency, avg_payout, tier])
-    y = risk_score
-    return X, y
+    X = np.column_stack([zone_risk, trigger_frequency, avg_payout_norm, tier_norm])
+    return X, risk_score
 
 
 def train(n_samples: int = N_SAMPLES, seed: int = RANDOM_SEED) -> RandomForestRegressor:
-
+    """Train and persist the model. Returns the fitted estimator."""
     print(f"[train] Generating {n_samples} synthetic samples …")
     X, y = generate_synthetic_data(n_samples, seed)
 

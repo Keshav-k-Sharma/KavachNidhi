@@ -3,12 +3,12 @@ import logging
 from uuid import UUID
 from datetime import datetime, timezone
 
+from app.config import get_supabase_client
 from app.services.risk.inference.service import get_pricing, get_pricing_batch
 
 logger = logging.getLogger(__name__)
 
-
-# ── Tier encoding helper ──────────────────────────────────────────────────────
+# ── Tier encoding ─────────────────────────────────────────────────────────────
 
 TIER_MAP: dict[str, float] = {
     "basic": 0.2,
@@ -17,187 +17,145 @@ TIER_MAP: dict[str, float] = {
 }
 
 
-def encode_tier(tier_str: str) -> float:
-    
-    return TIER_MAP.get(tier_str.lower(), 0.2)
+def _encode_tier(tier_str: str) -> float:
+    return TIER_MAP.get((tier_str or "").lower(), 0.2)
 
 
-# ── Single driver ─────────────────────────────────────────────────────────────
+# ── Read — used by GET /risk/score/{driver_id} ────────────────────────────────
 
-async def recalculate_driver(driver_id: UUID, db) -> dict:
+def get_risk_score(driver_id: str) -> dict | None:
     
-    # 1. Pull driver + zone data
-    
-    row = await db.execute(
-        """
-        SELECT
-            d.id              AS driver_id,
-            d.subscription_tier,
-            cz.location_risk,
-            COALESCE(
-                (SELECT COUNT(*)::float / NULLIF(90, 0)
-                   FROM driver_trigger_logs dtl
-                  WHERE dtl.driver_id = d.id
-                    AND dtl.awarded_at > NOW() - INTERVAL '90 days'),
-                0.0
-            )                 AS trigger_frequency,
-            COALESCE(
-                (SELECT AVG(dtl.credits_awarded)
-                   FROM driver_trigger_logs dtl
-                  WHERE dtl.driver_id = d.id),
-                100.0
-            )                 AS avg_payout
-        FROM drivers d
-        JOIN city_zones cz ON cz.id = d.zone_id
-        WHERE d.id = :driver_id
-        """,
-        {"driver_id": str(driver_id)},
+    supabase = get_supabase_client()
+    result = (
+        supabase.table("risk_scores")
+        .select("driver_id, location_risk, trigger_frequency, tier_risk, composite_score, last_calculated_at")
+        .eq("driver_id", str(driver_id))
+        .maybe_single()
+        .execute()
     )
-    record = row.mappings().first()
+    return result.data
 
-    if not record:
-        raise ValueError(f"Driver {driver_id} not found or has no zone assignment")
 
-    tier_float = encode_tier(record["subscription_tier"])
+# ── Write — used by scheduler and POST /risk/recalculate ─────────────────────
 
-    # 2. Get ML pricing output
+def recalculate_driver(driver_id: str) -> dict:
+    
+    supabase = get_supabase_client()
+
+    # 1. Driver + zone data
+    driver_result = (
+        supabase.table("drivers")
+        .select("id, subscription_tier, zone_id")
+        .eq("id", str(driver_id))
+        .maybe_single()
+        .execute()
+    )
+    if not driver_result.data:
+        raise ValueError(f"Driver {driver_id} not found")
+
+    driver = driver_result.data
+
+    zone_result = (
+        supabase.table("city_zones")
+        .select("location_risk")
+        .eq("id", driver["zone_id"])
+        .maybe_single()
+        .execute()
+    )
+    if not zone_result.data:
+        raise ValueError(f"Zone not found for driver {driver_id}")
+
+    location_risk = float(zone_result.data["location_risk"])
+
+    # 2. Trigger frequency — count of trigger logs in last 90 days
+    logs_result = (
+        supabase.table("driver_trigger_logs")
+        .select("id", count="exact")
+        .eq("driver_id", str(driver_id))
+        .gte("awarded_at", _ninety_days_ago())
+        .execute()
+    )
+    raw_count = logs_result.count or 0
+    
+    trigger_frequency = min(1.0, float(raw_count) / 90.0)
+
+    # 3. Average payout
+    avg_result = (
+        supabase.table("driver_trigger_logs")
+        .select("credits_awarded")
+        .eq("driver_id", str(driver_id))
+        .execute()
+    )
+    payouts = [row["credits_awarded"] for row in (avg_result.data or []) if row["credits_awarded"]]
+    avg_payout = float(sum(payouts) / len(payouts)) if payouts else 100.0
+    avg_payout = max(50.0, min(200.0, avg_payout))
+
+    tier_float = _encode_tier(driver["subscription_tier"])
+
+    # 4. ML inference
     pricing = get_pricing({
-        "zone_risk":         float(record["location_risk"]),
-        "trigger_frequency": float(record["trigger_frequency"]),
-        "avg_payout":        float(max(50.0, min(200.0, record["avg_payout"]))),
+        "zone_risk":         location_risk,
+        "trigger_frequency": trigger_frequency,
+        "avg_payout":        avg_payout,
         "tier":              tier_float,
     })
 
-    # 3. Upsert into risk_scores
-    now = datetime.now(timezone.utc)
-    await db.execute(
-        """
-        INSERT INTO risk_scores
-            (driver_id, location_risk, trigger_frequency, tier_risk,
-             composite_score, last_calculated_at)
-        VALUES
-            (:driver_id, :location_risk, :trigger_frequency, :tier_risk,
-             :composite_score, :last_calculated_at)
-        ON CONFLICT (driver_id) DO UPDATE SET
-            location_risk       = EXCLUDED.location_risk,
-            trigger_frequency   = EXCLUDED.trigger_frequency,
-            tier_risk           = EXCLUDED.tier_risk,
-            composite_score     = EXCLUDED.composite_score,
-            last_calculated_at  = EXCLUDED.last_calculated_at
-        """,
-        {
-            "driver_id":          str(driver_id),
-            "location_risk":      record["location_risk"],
-            "trigger_frequency":  record["trigger_frequency"],
-            "tier_risk":          tier_float,
-            "composite_score":    pricing["risk_score"],
-            "last_calculated_at": now,
-        },
-    )
-    await db.commit()
+    # 5. Upsert into risk_scores
+    now = datetime.now(timezone.utc).isoformat()
+    supabase.table("risk_scores").upsert({
+        "driver_id":          str(driver_id),
+        "location_risk":      location_risk,
+        "trigger_frequency":  trigger_frequency,
+        "tier_risk":          tier_float,
+        "composite_score":    pricing["risk_score"],
+        "last_calculated_at": now,
+    }, on_conflict="driver_id").execute()
 
     logger.info(
         "[risk_calculator] driver=%s  composite_score=%.4f  premium=₹%.2f",
-        driver_id,
-        pricing["risk_score"],
-        pricing["weekly_premium"],
+        driver_id, pricing["risk_score"], pricing["weekly_premium"],
     )
 
     return {
         "driver_id":       str(driver_id),
         "composite_score": pricing["risk_score"],
         "weekly_premium":  pricing["weekly_premium"],
-        "recalculated_at": now.isoformat(),
+        "recalculated_at": now,
     }
 
 
-# ── Bulk recalculate (APScheduler / POST /risk/recalculate) ───────────────────
+def recalculate_all() -> dict:
+    supabase = get_supabase_client()
 
-async def recalculate_all(db) -> dict:
-    
-    rows = await db.execute(
-        """
-        SELECT
-            d.id              AS driver_id,
-            d.subscription_tier,
-            cz.location_risk,
-            COALESCE(
-                (SELECT COUNT(*)::float / NULLIF(90, 0)
-                   FROM driver_trigger_logs dtl
-                  WHERE dtl.driver_id = d.id
-                    AND dtl.awarded_at > NOW() - INTERVAL '90 days'),
-                0.0
-            )                 AS trigger_frequency,
-            COALESCE(
-                (SELECT AVG(dtl.credits_awarded)
-                   FROM driver_trigger_logs dtl
-                  WHERE dtl.driver_id = d.id),
-                100.0
-            )                 AS avg_payout
-        FROM drivers d
-        JOIN city_zones cz ON cz.id = d.zone_id
-        WHERE d.is_active = TRUE
-        """
+    drivers_result = (
+        supabase.table("drivers")
+        .select("id")
+        .eq("is_active", True)
+        .execute()
     )
-    all_drivers = rows.mappings().all()
+    drivers = drivers_result.data or []
 
-    if not all_drivers:
+    if not drivers:
         logger.warning("[risk_calculator] recalculate_all: no active drivers found")
         return {"total": 0, "updated": 0, "errors": 0}
 
-    # Build batch input
-    batch_input = []
-    for r in all_drivers:
-        batch_input.append({
-            "zone_risk":         float(r["location_risk"]),
-            "trigger_frequency": float(r["trigger_frequency"]),
-            "avg_payout":        float(max(50.0, min(200.0, r["avg_payout"]))),
-            "tier":              encode_tier(r["subscription_tier"]),
-        })
-
-    pricing_results = get_pricing_batch(batch_input)
-
-    now = datetime.now(timezone.utc)
     updated = 0
     errors  = 0
 
-    for driver_row, pricing in zip(all_drivers, pricing_results):
+    for row in drivers:
         try:
-            await db.execute(
-                """
-                INSERT INTO risk_scores
-                    (driver_id, location_risk, trigger_frequency, tier_risk,
-                     composite_score, last_calculated_at)
-                VALUES
-                    (:driver_id, :location_risk, :trigger_frequency, :tier_risk,
-                     :composite_score, :last_calculated_at)
-                ON CONFLICT (driver_id) DO UPDATE SET
-                    location_risk       = EXCLUDED.location_risk,
-                    trigger_frequency   = EXCLUDED.trigger_frequency,
-                    tier_risk           = EXCLUDED.tier_risk,
-                    composite_score     = EXCLUDED.composite_score,
-                    last_calculated_at  = EXCLUDED.last_calculated_at
-                """,
-                {
-                    "driver_id":          str(driver_row["driver_id"]),
-                    "location_risk":      driver_row["location_risk"],
-                    "trigger_frequency":  driver_row["trigger_frequency"],
-                    "tier_risk":          encode_tier(driver_row["subscription_tier"]),
-                    "composite_score":    pricing["risk_score"],
-                    "last_calculated_at": now,
-                },
-            )
+            recalculate_driver(row["id"])
             updated += 1
         except Exception as exc:
-            logger.error(
-                "[risk_calculator] failed for driver %s: %s",
-                driver_row["driver_id"], exc
-            )
+            logger.error("[risk_calculator] failed for driver %s: %s", row["id"], exc)
             errors += 1
 
-    await db.commit()
-    logger.info(
-        "[risk_calculator] recalculate_all done — updated=%d errors=%d",
-        updated, errors
-    )
-    return {"total": len(all_drivers), "updated": updated, "errors": errors}
+    logger.info("[risk_calculator] recalculate_all — updated=%d errors=%d", updated, errors)
+    return {"total": len(drivers), "updated": updated, "errors": errors}
+
+
+# ── Internal helpers ──────────────────────────────────────────────────────────
+
+def _ninety_days_ago() -> str:
+    from datetime import timedelta
+    return (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()

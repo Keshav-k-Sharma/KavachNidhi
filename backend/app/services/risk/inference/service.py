@@ -1,5 +1,4 @@
 
-
 import logging
 from typing import TypedDict
 
@@ -8,30 +7,27 @@ from app.services.risk.inference.pricing import calculate_premium
 
 logger = logging.getLogger(__name__)
 
-
-# ── TypedDicts for IDE autocomplete and validation ────────────────────────────
+# ── TypedDicts ────────────────────────────────────────────────────────────────
 
 class RiskInput(TypedDict):
-    zone_risk:         float   # city_zones.location_risk — 0.0 to 1.0
-    trigger_frequency: float   # events last 90d / max possible — 0.0 to 1.0
-    avg_payout:        float   # mean historical payout — 50 to 200
-    tier:              float   # 0.2 = basic | 0.5 = plus | 1.0 = max
+    zone_risk:         float   
+    trigger_frequency: float   
+    avg_payout:        float   
+    tier:              float   
 
 
 class RiskOutput(TypedDict):
-    risk_score:      float   # composite ML score — 0.0 to 1.0
-    weekly_premium:  float   # ₹ per week
-    base_premium:    float   # breakdown: base
-    risk_loading:    float   # breakdown: risk-driven uplift
-    tier_floor_bump: float   # breakdown: tier minimum bump
+    risk_score:     float  
+    weekly_premium: float  
+    base_rate:      float   
+    risk_loading:   float   
 
-
-# ── Validation helpers ────────────────────────────────────────────────────────
+# ── Validation ────────────────────────────────────────────────────────────────
 
 _VALID_TIERS = {0.2, 0.5, 1.0}
 
+
 def _validate(data: dict) -> None:
-    
     required = ["zone_risk", "trigger_frequency", "avg_payout", "tier"]
     for field in required:
         if field not in data:
@@ -53,6 +49,7 @@ def _validate(data: dict) -> None:
 # ── Public functions ──────────────────────────────────────────────────────────
 
 def get_pricing(data: RiskInput) -> RiskOutput:
+    
     _validate(data)
 
     risk_score = predict_risk_score(
@@ -64,23 +61,18 @@ def get_pricing(data: RiskInput) -> RiskOutput:
 
     breakdown = calculate_premium(risk_score, tier=data["tier"])
 
-    logger.debug(
-        "[service] driver risk_score=%.4f  premium=₹%.2f",
-        breakdown.risk_score,
-        breakdown.weekly_premium,
-    )
+    logger.debug("[service] risk_score=%.4f  premium=₹%.2f",
+                 breakdown.risk_score, breakdown.weekly_premium)
 
     return RiskOutput(
-        risk_score      = breakdown.risk_score,
-        weekly_premium  = breakdown.weekly_premium,
-        base_premium    = breakdown.base_premium,
-        risk_loading    = breakdown.risk_loading,
-        tier_floor_bump = breakdown.tier_floor_bump,
+        risk_score     = breakdown.risk_score,
+        weekly_premium = breakdown.weekly_premium,
+        base_rate      = breakdown.base_rate,
+        risk_loading   = breakdown.risk_loading,
     )
 
 
 def get_pricing_batch(records: list[RiskInput]) -> list[RiskOutput]:
-    
     for i, r in enumerate(records):
         try:
             _validate(r)
@@ -93,11 +85,10 @@ def get_pricing_batch(records: list[RiskInput]) -> list[RiskOutput]:
     for record, score in zip(records, risk_scores):
         breakdown = calculate_premium(score, tier=record["tier"])
         results.append(RiskOutput(
-            risk_score      = breakdown.risk_score,
-            weekly_premium  = breakdown.weekly_premium,
-            base_premium    = breakdown.base_premium,
-            risk_loading    = breakdown.risk_loading,
-            tier_floor_bump = breakdown.tier_floor_bump,
+            risk_score     = breakdown.risk_score,
+            weekly_premium = breakdown.weekly_premium,
+            base_rate      = breakdown.base_rate,
+            risk_loading   = breakdown.risk_loading,
         ))
 
     return results
