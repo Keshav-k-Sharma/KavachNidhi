@@ -65,24 +65,36 @@ class TriggerStatusCard extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          Container(
-            height: 4,
-            clipBehavior: Clip.hardEdge,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: FractionallySizedBox(
+          if (trigger.progress.isNaN)
+            Align(
               alignment: Alignment.centerLeft,
-              widthFactor: trigger.progress.clamp(0.0, 1.0),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: accent,
-                  borderRadius: BorderRadius.circular(12),
+              child: Text(
+                'NaN',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          else
+            Container(
+              height: 4,
+              clipBehavior: Clip.hardEdge,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: trigger.progress.clamp(0.0, 1.0),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: accent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
-          ),
           const SizedBox(height: 16),
         ],
       ),
