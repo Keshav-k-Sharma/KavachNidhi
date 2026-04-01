@@ -1,0 +1,48 @@
+# -------------------------
+# Python cache files
+# -------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# -------------------------
+# Virtual environments
+# -------------------------
+venv/
+.env/
+.env.*
+
+# -------------------------
+# OS files
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# Logs
+# -------------------------
+*.log
+
+# -------------------------
+# IDE files
+# -------------------------
+.vscode/
+.idea/
+
+# -------------------------
+# Temporary files
+# -------------------------
+*.tmp
+*.swp
+
+# -------------------------
+# Jupyter (if used)
+# -------------------------
+.ipynb_checkpoints/
+
+# -------------------------
+# IMPORTANT: DO NOT IGNORE MODEL
+# -------------------------
+# Make sure this is NOT ignored:
+!backend/app/services/risk/models/risk_model.pkl
