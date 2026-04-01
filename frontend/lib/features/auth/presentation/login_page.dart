@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'package:frontend/core/auth/auth_controller.dart';
+import 'package:frontend/core/auth/phone_format.dart';
 import 'package:frontend/core/router/app_router.dart';
 import 'package:frontend/features/auth/presentation/widgets/auth_brand_header.dart';
 import 'package:frontend/features/auth/presentation/widgets/auth_feature_tile.dart';
@@ -16,6 +20,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _mobileController = TextEditingController();
+  bool _sending = false;
 
   @override
   void dispose() {
@@ -34,15 +39,34 @@ class _LoginPageState extends State<LoginPage> {
     return null;
   }
 
-  void _requestOtp() {
+  Future<void> _requestOtp() async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('OTP sent to +91 ${_mobileController.text.trim()}'),
-      ),
-    );
+    setState(() => _sending = true);
+    final String digits = _mobileController.text.trim();
+    final String e164 = indiaMobileToE164(digits);
+    try {
+      await context.read<AuthController>().requestOtp(e164);
+      if (!mounted) {
+        return;
+      }
+      await Navigator.of(context).pushNamed(
+        AppRouter.otpRoute,
+        arguments: digits,
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _sending = false);
+      }
+    }
   }
 
   @override
@@ -72,10 +96,10 @@ class _LoginPageState extends State<LoginPage> {
                       Text(
                         'Secure your hard-earned savings today.',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurfaceVariant,
-                        ),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
                       ),
                       const SizedBox(height: 28),
                       AuthTextField(
@@ -92,9 +116,9 @@ class _LoginPageState extends State<LoginPage> {
                           Icon(
                             Icons.verified_user_outlined,
                             size: 16,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -114,9 +138,9 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 24),
                       PrimaryActionButton(
-                        label: 'Request OTP',
+                        label: _sending ? 'Sending…' : 'Request OTP',
                         icon: Icons.arrow_forward,
-                        onPressed: _requestOtp,
+                        onPressed: _sending ? null : _requestOtp,
                       ),
                       const SizedBox(height: 16),
                       AuthFooterLink(

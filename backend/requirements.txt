@@ -1,27 +1,41 @@
-# Web framework
-fastapi
-uvicorn[standard]
-
-# Supabase
-supabase
-
-# Scheduling (KavachBrain 60s loop + Sunday settlement cron)
-apscheduler
-
-# Payments
-razorpay
-
-# HTTP client (OpenWeatherMap + TomTom)
-httpx
-
-# Data validation
-pydantic[email]
-pydantic-settings
-
-# Security
-python-jose[cryptography]
-passlib[bcrypt]
-
-# Utilities
-python-multipart
-python-dotenv
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.13.0
+APScheduler==3.11.2
+certifi==2026.2.25
+charset-normalizer==3.4.6
+click==8.3.1
+colorama==0.4.6
+deprecation==2.1.0
+fastapi==0.135.2
+gotrue==2.4.1
+h11==0.14.0
+h2==4.3.0
+hpack==4.1.0
+httpcore==0.17.3
+httpx==0.24.1
+hyperframe==6.1.0
+idna==3.11
+packaging==26.0
+postgrest==0.15.1
+pydantic==2.12.5
+pydantic_core==2.41.5
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.2
+razorpay==2.0.1
+realtime==1.0.6
+requests==2.33.1
+six==1.17.0
+sniffio==1.3.1
+starlette==1.0.0
+storage3==0.7.7
+StrEnum==0.4.15
+supabase==2.3.4
+supafunc==0.3.3
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+tzdata==2025.3
+tzlocal==5.3.1
+urllib3==2.6.3
+uvicorn==0.42.0
+websockets==12.0

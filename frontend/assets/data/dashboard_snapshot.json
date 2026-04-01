@@ -1,0 +1,78 @@
+{
+  "planName": "Kavach Max Active",
+  "systemStatusLabel": "System Status",
+  "systemStatusValue": "ENCRYPTED",
+  "sensorStatusLabel": "Environmental Sensors",
+  "sensorStatusValue": "LIVE",
+  "triggers": [
+    {
+      "title": "CycloneGuard",
+      "condition": "cyclone HIGH ALERT",
+      "detail": "Wind: 84 km/h • North-East",
+      "icon": "warning_amber_rounded",
+      "intensity": "HIGH ALERT",
+      "color": "#FF6D6D",
+      "isActive": true,
+      "progress": 0.84
+    },
+    {
+      "title": "FogBlock",
+      "condition": "visibility_off MODERATE",
+      "detail": "Visibility: 450m • Low-Beam Req.",
+      "icon": "cloudy_snowing",
+      "intensity": "MODERATE",
+      "color": "#FFC107",
+      "isActive": true,
+      "progress": 0.45
+    },
+    {
+      "title": "GridlockGain",
+      "condition": "traffic OPTIMAL",
+      "detail": "Avg Speed: 42 km/h • Free Flow",
+      "icon": "traffic",
+      "intensity": "OPTIMAL",
+      "color": "#7CFFB2",
+      "isActive": true,
+      "progress": 0.12
+    }
+  ],
+  "totalCredits": 1480,
+  "pendingCredits": 320,
+  "clearedCredits": 1160,
+  "shieldCreditsHeader": "Shield Credits",
+  "pendingCreditsLabel": "Pending Validation",
+  "pendingCreditsCaption": "Awaiting verification",
+  "clearedCreditsLabel": "Cleared Balance",
+  "clearedCreditsCaption": "Ready to pay",
+  "redeemCreditsLabel": "REDEEM CREDITS",
+  "nextSettlementDate": "12 MAY",
+  "settlementTime": "Sunday Settlement @ 6:00 PM IST",
+  "countdownDays": 2,
+  "countdownHours": 14,
+  "countdownMinutes": 38,
+  "countdownDaysLabel": "Days",
+  "countdownHoursLabel": "Hours",
+  "countdownMinutesLabel": "Mins",
+  "cycleProgressPercent": 78,
+  "cycleProgressLabel": "Cycle Progress",
+  "verificationEvents": [
+    {
+      "title": "Route Validation Success",
+      "subtitle": "FogBlock active during NH-44 Transit",
+      "impact": "+₹ 45",
+      "timeAgo": "2h ago",
+      "icon": "check_circle_outline"
+    },
+    {
+      "title": "Gridlock Bonus Pending",
+      "subtitle": "Traffic density verification in progress",
+      "impact": "₹ 12",
+      "timeAgo": "4h ago",
+      "icon": "pending_actions"
+    }
+  ],
+  "settlementStatusLabel": "Weekly Settlement",
+  "autoTransferMessage": "Automated bank transfer enabled",
+  "verificationStreamLabel": "Verification Stream",
+  "systemTagline": "Kavach Max Active"
+}

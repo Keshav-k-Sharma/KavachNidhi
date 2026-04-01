@@ -292,8 +292,19 @@ cd frontend
 flutter pub get
 flutter run
 
+# Optional: non-default API base (default is http://127.0.0.1:8000)
+# flutter run --dart-define=API_BASE_URL=https://your-api.example.com
+
 # Run tests
 flutter test
+```
+
+**Linux (Android builds):** If your default JDK is 25+, Gradle can fail while parsing the Java version. Use JDK 21 for the session, then run the app:
+
+```bash
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+export PATH="$JAVA_HOME/bin:$PATH"
+flutter run
 ```
 
 **Flutter:** 3.22+ (Dart 3.4+) · **Min SDK:** Android 6.0 (API 23) / iOS 14
