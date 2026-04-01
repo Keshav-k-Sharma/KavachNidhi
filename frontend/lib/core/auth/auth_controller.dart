@@ -32,21 +32,33 @@ class AuthController extends ChangeNotifier {
       accessToken != null && accessToken!.isNotEmpty;
 
   Future<void> bootstrap() async {
-    accessToken = await _tokenStorage.readAccessToken();
-    userId = await _tokenStorage.readUserId();
+    try {
+      final List<String?> results = await Future.wait<String?>(<Future<String?>>[
+        _tokenStorage.readAccessToken(),
+        _tokenStorage.readUserId(),
+      ]).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => <String?>[null, null],
+      );
+      accessToken = results[0];
+      userId = results[1];
+    } catch (_) {
+      accessToken = null;
+      userId = null;
+    }
     ready = true;
     notifyListeners();
   }
 
-  Future<void> requestOtp(String phoneE164) =>
-      _authRepository.sendOtp(phoneE164);
+  Future<void> requestOtp(String phoneDigits) =>
+      _authRepository.sendOtp(phoneDigits);
 
   Future<void> signInWithOtp({
-    required String phoneE164,
+    required String phoneDigits,
     required String otp,
   }) async {
     final ({String accessToken, String userId}) result =
-        await _authRepository.verifyOtp(phone: phoneE164, otp: otp);
+        await _authRepository.verifyOtp(phone: phoneDigits, otp: otp);
     await _tokenStorage.saveSession(
       accessToken: result.accessToken,
       userId: result.userId,

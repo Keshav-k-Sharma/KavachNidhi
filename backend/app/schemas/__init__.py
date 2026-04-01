@@ -21,7 +21,7 @@ def err(message: str) -> dict:
 # ── Auth ───────────────────────────────────────────────────────────────────────
 
 class SendOTPRequest(BaseModel):
-    phone: str          # e.g. "+919876543210"
+    phone: str          # 10-digit local, e.g. "9876543210" (server adds +91 for Supabase)
 
 
 class VerifyOTPRequest(BaseModel):
