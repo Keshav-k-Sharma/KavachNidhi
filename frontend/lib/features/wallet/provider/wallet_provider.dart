@@ -28,6 +28,27 @@ class WalletNotifier extends StateNotifier<WalletState> {
       transactions: [...state.transactions, tx],
     );
   }
+
+  // ✅ New method for payouts
+  void withdraw(double amount, String description) {
+    if (amount <= state.balance.amount) {
+      final tx = WalletTransaction(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        type: "debit",
+        amount: amount,
+        date: DateTime.now(),
+        description: description,
+      );
+
+      state = WalletState(
+        balance: WalletBalance(
+          amount: state.balance.amount - amount,
+          currency: state.balance.currency,
+        ),
+        transactions: [...state.transactions, tx],
+      );
+    }
+  }
 }
 
 final walletProvider = StateNotifierProvider<WalletNotifier, WalletState>(
