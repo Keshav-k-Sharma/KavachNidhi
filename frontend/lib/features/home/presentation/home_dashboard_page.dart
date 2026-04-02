@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import 'package:frontend/core/auth/auth_controller.dart';
 import 'package:frontend/features/home/data/dashboard_snapshot.dart';
+import 'package:frontend/features/home/data/dashboard_stitcher.dart';
 import 'package:frontend/features/home/presentation/widgets/trigger_status_card.dart';
 
 class HomeDashboardPage extends StatefulWidget {
@@ -409,7 +412,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        _formatNumber(dashboard.totalCredits),
+                        formatDashboardNumber(dashboard.totalCredits),
                         style: theme.textTheme.displayLarge?.copyWith(
                           fontWeight: FontWeight.w900,
                           color: theme.colorScheme.onSurface,
@@ -543,11 +546,11 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              _countdownUnit(theme, dashboard.countdownDays.toString(), dashboard.countdownDaysLabel),
+              _countdownUnit(theme, formatCountdownSegment(dashboard.countdownDays), dashboard.countdownDaysLabel),
               _colonSeparator(theme),
-              _countdownUnit(theme, dashboard.countdownHours.toString(), dashboard.countdownHoursLabel),
+              _countdownUnit(theme, formatCountdownSegment(dashboard.countdownHours), dashboard.countdownHoursLabel),
               _colonSeparator(theme),
-              _countdownUnit(theme, dashboard.countdownMinutes.toString(), dashboard.countdownMinutesLabel),
+              _countdownUnit(theme, formatCountdownSegment(dashboard.countdownMinutes), dashboard.countdownMinutesLabel),
             ],
           ),
           const SizedBox(height: 20),
@@ -563,7 +566,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                 ),
               ),
               Text(
-                '${dashboard.cycleProgressPercent}%',
+                formatCyclePercentLabel(dashboard.cycleProgressPercent),
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                   letterSpacing: 1.0,
@@ -573,7 +576,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
           ),
           const SizedBox(height: 8),
           // Amber gradient progress bar
-          _GradientProgressBar(value: dashboard.cycleProgressPercent / 100),
+          _GradientProgressBar(value: dashboard.cycleProgressPercent),
           const SizedBox(height: 20),
           // Auto-transfer footer
           Container(
@@ -616,7 +619,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
     return Column(
       children: <Widget>[
         Text(
-          value.padLeft(2, '0'),
+          value,
           style: theme.textTheme.displaySmall?.copyWith(
             fontWeight: FontWeight.w900,
             letterSpacing: -1.0,
@@ -754,19 +757,48 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-String _formatNumber(int value) {
-  final String s = value.toString();
+/// Formats a dashboard amount for display; [double.nan] becomes `"NaN"`.
+String formatDashboardNumber(double value) {
+  if (value.isNaN) {
+    return 'NaN';
+  }
+  final int rounded = value.round();
+  final String s = rounded.abs().toString();
   final StringBuffer buf = StringBuffer();
+  if (rounded < 0) {
+    buf.write('-');
+  }
   for (int i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+    if (i > 0 && (s.length - i) % 3 == 0) {
+      buf.write(',');
+    }
     buf.write(s[i]);
   }
   return buf.toString();
 }
 
+String formatCountdownSegment(double value) {
+  if (value.isNaN) {
+    return 'NaN';
+  }
+  return value.round().toString().padLeft(2, '0');
+}
+
+String formatCyclePercentLabel(double percent) {
+  if (percent.isNaN) {
+    return 'NaN%';
+  }
+  return '${percent.round()}%';
+}
+
 class CurrencyFormat {
   const CurrencyFormat();
-  String format(int value) => '₹ ${_formatNumber(value)}';
+  String format(double value) {
+    if (value.isNaN) {
+      return '₹ NaN';
+    }
+    return '₹ ${formatDashboardNumber(value)}';
+  }
 }
 
 // ─── Private widgets ─────────────────────────────────────────────────────────
@@ -861,22 +893,40 @@ class _GradientButton extends StatelessWidget {
 class _GradientProgressBar extends StatelessWidget {
   const _GradientProgressBar({required this.value});
 
+  /// 0–100 cycle percent, or [double.nan] when unknown.
   final double value;
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    if (value.isNaN) {
+      return SizedBox(
+        height: 12,
+        child: Align(
+          alignment: Alignment.center,
+          child: Text(
+            'NaN',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+    }
+    final double frac = (value.clamp(0.0, 100.0)) / 100.0;
     return Container(
       height: 12,
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Stack(
         children: <Widget>[
           FractionallySizedBox(
             alignment: Alignment.centerLeft,
-            widthFactor: value.clamp(0.0, 1.0),
+            widthFactor: frac,
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
@@ -901,16 +951,42 @@ class _GradientProgressBar extends StatelessWidget {
 
 // ─── Loader ───────────────────────────────────────────────────────────────────
 
-class _HomeDashboardLoader extends StatelessWidget {
+class _HomeDashboardLoader extends StatefulWidget {
   const _HomeDashboardLoader();
+
+  @override
+  State<_HomeDashboardLoader> createState() => _HomeDashboardLoaderState();
+}
+
+class _HomeDashboardLoaderState extends State<_HomeDashboardLoader> {
+  Future<DashboardSnapshot>? _future;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _future ??= _loadDashboard();
+  }
+
+  Future<DashboardSnapshot> _loadDashboard() async {
+    final AuthController auth =
+        Provider.of<AuthController>(context, listen: false);
+    final DashboardSnapshot base = await loadDashboardSnapshot();
+    return stitchDashboardSnapshot(
+      base: base,
+      apiClient: auth.apiClient,
+      isAuthenticated: auth.isAuthenticated,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<DashboardSnapshot>(
-      future: loadDashboardSnapshot(),
+      future: _future,
       builder: (BuildContext context, AsyncSnapshot<DashboardSnapshot> snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
 
         if (snapshot.hasError || !snapshot.hasData) {

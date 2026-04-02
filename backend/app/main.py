@@ -54,6 +54,6 @@ app.include_router(triggers_router)
 app.include_router(fraud_router)
 
 
-@app.get("/health")
+@app.head("/health")
 def health():
     return {"status": "ok"}

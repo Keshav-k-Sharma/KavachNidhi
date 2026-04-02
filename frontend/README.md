@@ -292,6 +292,9 @@ cd frontend
 flutter pub get
 flutter run
 
+# Optional: point at a local backend (default is production https://kavachnidhi.onrender.com)
+# flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000
+
 # Run tests
 flutter test
 ```

@@ -5,17 +5,51 @@ import 'package:flutter/services.dart';
 
 const String _dashboardSnapshotAssetPath = 'assets/data/dashboard_snapshot.json';
 
+/// Parses JSON numbers into [double], using [double.nan] when missing or invalid.
+double parseJsonDouble(dynamic value) {
+  if (value == null) {
+    return double.nan;
+  }
+  if (value is num) {
+    return value.toDouble();
+  }
+  if (value is String) {
+    return double.tryParse(value) ?? double.nan;
+  }
+  return double.nan;
+}
+
+/// Coerces API/JSON values (often [int]) to [double] for dashboard fields.
+double coerceToDouble(Object? value) {
+  if (value == null) {
+    return double.nan;
+  }
+  if (value is double) {
+    return value;
+  }
+  if (value is int) {
+    return value.toDouble();
+  }
+  if (value is num) {
+    return value.toDouble();
+  }
+  return double.nan;
+}
+
+double _mergeDouble(num? override, double current) =>
+    coerceToDouble(override ?? current);
+
 class DashboardSnapshot {
-  const DashboardSnapshot({
+  DashboardSnapshot({
     required this.planName,
     required this.systemStatusLabel,
     required this.systemStatusValue,
     required this.sensorStatusLabel,
     required this.sensorStatusValue,
     required this.triggers,
-    required this.totalCredits,
-    required this.pendingCredits,
-    required this.clearedCredits,
+    required num totalCredits,
+    required num pendingCredits,
+    required num clearedCredits,
     required this.shieldCreditsHeader,
     required this.pendingCreditsLabel,
     required this.pendingCreditsCaption,
@@ -24,20 +58,26 @@ class DashboardSnapshot {
     required this.redeemCreditsLabel,
     required this.nextSettlementDate,
     required this.settlementTime,
-    required this.countdownDays,
-    required this.countdownHours,
-    required this.countdownMinutes,
+    required num countdownDays,
+    required num countdownHours,
+    required num countdownMinutes,
     required this.countdownDaysLabel,
     required this.countdownHoursLabel,
     required this.countdownMinutesLabel,
-    required this.cycleProgressPercent,
+    required num cycleProgressPercent,
     required this.cycleProgressLabel,
     required this.verificationEvents,
     required this.settlementStatusLabel,
     required this.autoTransferMessage,
     required this.verificationStreamLabel,
     required this.systemTagline,
-  });
+  })  : totalCredits = totalCredits.toDouble(),
+        pendingCredits = pendingCredits.toDouble(),
+        clearedCredits = clearedCredits.toDouble(),
+        countdownDays = countdownDays.toDouble(),
+        countdownHours = countdownHours.toDouble(),
+        countdownMinutes = countdownMinutes.toDouble(),
+        cycleProgressPercent = cycleProgressPercent.toDouble();
 
   factory DashboardSnapshot.fromJson(Map<String, dynamic> json) {
     return DashboardSnapshot(
@@ -53,9 +93,9 @@ class DashboardSnapshot {
             ),
           )
           .toList(growable: false),
-      totalCredits: json['totalCredits'] as int,
-      pendingCredits: json['pendingCredits'] as int,
-      clearedCredits: json['clearedCredits'] as int,
+      totalCredits: parseJsonDouble(json['totalCredits']),
+      pendingCredits: parseJsonDouble(json['pendingCredits']),
+      clearedCredits: parseJsonDouble(json['clearedCredits']),
       shieldCreditsHeader: json['shieldCreditsHeader'] as String,
       pendingCreditsLabel: json['pendingCreditsLabel'] as String,
       pendingCreditsCaption: json['pendingCreditsCaption'] as String,
@@ -64,13 +104,13 @@ class DashboardSnapshot {
       redeemCreditsLabel: json['redeemCreditsLabel'] as String,
       nextSettlementDate: json['nextSettlementDate'] as String,
       settlementTime: json['settlementTime'] as String,
-      countdownDays: json['countdownDays'] as int,
-      countdownHours: json['countdownHours'] as int,
-      countdownMinutes: json['countdownMinutes'] as int,
+      countdownDays: parseJsonDouble(json['countdownDays']),
+      countdownHours: parseJsonDouble(json['countdownHours']),
+      countdownMinutes: parseJsonDouble(json['countdownMinutes']),
       countdownDaysLabel: json['countdownDaysLabel'] as String,
       countdownHoursLabel: json['countdownHoursLabel'] as String,
       countdownMinutesLabel: json['countdownMinutesLabel'] as String,
-      cycleProgressPercent: json['cycleProgressPercent'] as int,
+      cycleProgressPercent: parseJsonDouble(json['cycleProgressPercent']),
       cycleProgressLabel: json['cycleProgressLabel'] as String,
       verificationEvents: (json['verificationEvents'] as List<dynamic>)
           .map(
@@ -92,9 +132,10 @@ class DashboardSnapshot {
   final String sensorStatusLabel;
   final String sensorStatusValue;
   final List<TriggerStatusCardModel> triggers;
-  final int totalCredits;
-  final int pendingCredits;
-  final int clearedCredits;
+  /// Shield credits balance — `double.nan` when unavailable.
+  final double totalCredits;
+  final double pendingCredits;
+  final double clearedCredits;
   final String shieldCreditsHeader;
   final String pendingCreditsLabel;
   final String pendingCreditsCaption;
@@ -103,23 +144,139 @@ class DashboardSnapshot {
   final String redeemCreditsLabel;
   final String nextSettlementDate;
   final String settlementTime;
-  final int countdownDays;
-  final int countdownHours;
-  final int countdownMinutes;
+  final double countdownDays;
+  final double countdownHours;
+  final double countdownMinutes;
   final String countdownDaysLabel;
   final String countdownHoursLabel;
   final String countdownMinutesLabel;
-  final int cycleProgressPercent;
+  final double cycleProgressPercent;
   final String cycleProgressLabel;
   final List<VerificationEvent> verificationEvents;
   final String settlementStatusLabel;
   final String autoTransferMessage;
   final String verificationStreamLabel;
   final String systemTagline;
+
+  /// When the user is not signed in, hide demo numerics for API-backed fields.
+  DashboardSnapshot withProtectedFieldsNan() {
+    return DashboardSnapshot(
+      planName: planName,
+      systemStatusLabel: systemStatusLabel,
+      systemStatusValue: systemStatusValue,
+      sensorStatusLabel: sensorStatusLabel,
+      sensorStatusValue: sensorStatusValue,
+      triggers: triggers
+          .map(
+            (TriggerStatusCardModel t) => TriggerStatusCardModel(
+              title: t.title,
+              condition: t.condition,
+              detail: t.detail,
+              icon: t.icon,
+              intensity: t.intensity,
+              color: t.color,
+              isActive: t.isActive,
+              progress: double.nan,
+            ),
+          )
+          .toList(growable: false),
+      totalCredits: double.nan,
+      pendingCredits: double.nan,
+      clearedCredits: double.nan,
+      shieldCreditsHeader: shieldCreditsHeader,
+      pendingCreditsLabel: pendingCreditsLabel,
+      pendingCreditsCaption: pendingCreditsCaption,
+      clearedCreditsLabel: clearedCreditsLabel,
+      clearedCreditsCaption: clearedCreditsCaption,
+      redeemCreditsLabel: redeemCreditsLabel,
+      nextSettlementDate: nextSettlementDate,
+      settlementTime: settlementTime,
+      countdownDays: double.nan,
+      countdownHours: double.nan,
+      countdownMinutes: double.nan,
+      countdownDaysLabel: countdownDaysLabel,
+      countdownHoursLabel: countdownHoursLabel,
+      countdownMinutesLabel: countdownMinutesLabel,
+      cycleProgressPercent: double.nan,
+      cycleProgressLabel: cycleProgressLabel,
+      verificationEvents: const <VerificationEvent>[],
+      settlementStatusLabel: settlementStatusLabel,
+      autoTransferMessage: autoTransferMessage,
+      verificationStreamLabel: verificationStreamLabel,
+      systemTagline: systemTagline,
+    );
+  }
+
+  DashboardSnapshot copyWith({
+    String? planName,
+    String? systemStatusLabel,
+    String? systemStatusValue,
+    String? sensorStatusLabel,
+    String? sensorStatusValue,
+    List<TriggerStatusCardModel>? triggers,
+    num? totalCredits,
+    num? pendingCredits,
+    num? clearedCredits,
+    String? shieldCreditsHeader,
+    String? pendingCreditsLabel,
+    String? pendingCreditsCaption,
+    String? clearedCreditsLabel,
+    String? clearedCreditsCaption,
+    String? redeemCreditsLabel,
+    String? nextSettlementDate,
+    String? settlementTime,
+    num? countdownDays,
+    num? countdownHours,
+    num? countdownMinutes,
+    String? countdownDaysLabel,
+    String? countdownHoursLabel,
+    String? countdownMinutesLabel,
+    num? cycleProgressPercent,
+    String? cycleProgressLabel,
+    List<VerificationEvent>? verificationEvents,
+    String? settlementStatusLabel,
+    String? autoTransferMessage,
+    String? verificationStreamLabel,
+    String? systemTagline,
+  }) {
+    return DashboardSnapshot(
+      planName: planName ?? this.planName,
+      systemStatusLabel: systemStatusLabel ?? this.systemStatusLabel,
+      systemStatusValue: systemStatusValue ?? this.systemStatusValue,
+      sensorStatusLabel: sensorStatusLabel ?? this.sensorStatusLabel,
+      sensorStatusValue: sensorStatusValue ?? this.sensorStatusValue,
+      triggers: triggers ?? this.triggers,
+      totalCredits: _mergeDouble(totalCredits, this.totalCredits),
+      pendingCredits: _mergeDouble(pendingCredits, this.pendingCredits),
+      clearedCredits: _mergeDouble(clearedCredits, this.clearedCredits),
+      shieldCreditsHeader: shieldCreditsHeader ?? this.shieldCreditsHeader,
+      pendingCreditsLabel: pendingCreditsLabel ?? this.pendingCreditsLabel,
+      pendingCreditsCaption: pendingCreditsCaption ?? this.pendingCreditsCaption,
+      clearedCreditsLabel: clearedCreditsLabel ?? this.clearedCreditsLabel,
+      clearedCreditsCaption: clearedCreditsCaption ?? this.clearedCreditsCaption,
+      redeemCreditsLabel: redeemCreditsLabel ?? this.redeemCreditsLabel,
+      nextSettlementDate: nextSettlementDate ?? this.nextSettlementDate,
+      settlementTime: settlementTime ?? this.settlementTime,
+      countdownDays: _mergeDouble(countdownDays, this.countdownDays),
+      countdownHours: _mergeDouble(countdownHours, this.countdownHours),
+      countdownMinutes: _mergeDouble(countdownMinutes, this.countdownMinutes),
+      countdownDaysLabel: countdownDaysLabel ?? this.countdownDaysLabel,
+      countdownHoursLabel: countdownHoursLabel ?? this.countdownHoursLabel,
+      countdownMinutesLabel: countdownMinutesLabel ?? this.countdownMinutesLabel,
+      cycleProgressPercent:
+          _mergeDouble(cycleProgressPercent, this.cycleProgressPercent),
+      cycleProgressLabel: cycleProgressLabel ?? this.cycleProgressLabel,
+      verificationEvents: verificationEvents ?? this.verificationEvents,
+      settlementStatusLabel: settlementStatusLabel ?? this.settlementStatusLabel,
+      autoTransferMessage: autoTransferMessage ?? this.autoTransferMessage,
+      verificationStreamLabel: verificationStreamLabel ?? this.verificationStreamLabel,
+      systemTagline: systemTagline ?? this.systemTagline,
+    );
+  }
 }
 
 class TriggerStatusCardModel {
-  const TriggerStatusCardModel({
+  TriggerStatusCardModel({
     required this.title,
     required this.condition,
     required this.detail,
@@ -127,10 +284,13 @@ class TriggerStatusCardModel {
     required this.intensity,
     required this.color,
     required this.isActive,
-    required this.progress,
-  });
+    required num progress,
+  }) : progress = progress.toDouble();
 
   factory TriggerStatusCardModel.fromJson(Map<String, dynamic> json) {
+    final Object? rawProgress = json['progress'];
+    final double p =
+        rawProgress == null ? 0.5 : parseJsonDouble(rawProgress);
     return TriggerStatusCardModel(
       title: json['title'] as String,
       condition: json['condition'] as String,
@@ -139,7 +299,7 @@ class TriggerStatusCardModel {
       intensity: json['intensity'] as String,
       color: _parseColor(json['color'] as String),
       isActive: json['isActive'] as bool,
-      progress: (json['progress'] as num?)?.toDouble() ?? 0.5,
+      progress: p.isNaN ? 0.5 : p,
     );
   }
 
@@ -150,6 +310,7 @@ class TriggerStatusCardModel {
   final String intensity;
   final Color color;
   final bool isActive;
+  /// No live trigger API — stitched dashboards use [double.nan] here.
   final double progress;
 }
 
@@ -194,6 +355,10 @@ const Map<String, IconData> _iconByKey = <String, IconData>{
   'traffic': Icons.traffic,
   'check_circle_outline': Icons.check_circle_outline,
   'pending_actions': Icons.pending_actions,
+  'receipt_long': Icons.receipt_long,
+  'payments': Icons.payments,
+  'swap_horiz': Icons.swap_horiz,
+  'account_balance_wallet': Icons.account_balance_wallet,
 };
 
 IconData _parseIcon(String key) {
@@ -203,6 +368,8 @@ IconData _parseIcon(String key) {
   }
   return icon;
 }
+
+IconData parseDashboardIconKey(String key) => _parseIcon(key);
 
 Color _parseColor(String value) {
   final String hex = value.replaceFirst('#', '');
