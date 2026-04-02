@@ -11,14 +11,8 @@ No server needed. No JWT. No teammates.
 """
 import os
 import sys
-
-# ── Load .env automatically ───────────────────────────────────────────────────
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    print("  dotenv not installed — run: pip install python-dotenv")
-    sys.exit(1)
+from dotenv import load_dotenv
+load_dotenv()
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
 
@@ -29,10 +23,10 @@ CYAN   = "\033[96m"
 BOLD   = "\033[1m"
 RESET  = "\033[0m"
 
-def ok(msg):     print(f"  {GREEN}✓ {msg}{RESET}")
-def fail(msg):   print(f"  {RED}✗ {msg}{RESET}")
-def info(msg):   print(f"  {YELLOW}→ {msg}{RESET}")
-def header(msg): print(f"\n{BOLD}{CYAN}{'─'*50}\n  {msg}\n{'─'*50}{RESET}")
+def ok(msg):    print(f"  {GREEN}✓ {msg}{RESET}")
+def fail(msg):  print(f"  {RED}✗ {msg}{RESET}")
+def info(msg):  print(f"  {YELLOW}→ {msg}{RESET}")
+def header(msg):print(f"\n{BOLD}{CYAN}{'─'*50}\n  {msg}\n{'─'*50}{RESET}")
 
 
 # ── 1. ENV VARS ───────────────────────────────────────────────────────────────
@@ -55,7 +49,9 @@ for var in required_vars:
         env_ok = False
 
 if not env_ok:
-    print(f"\n{RED}Fix missing env vars in backend/.env then re-run.{RESET}")
+    print(f"\n{RED}Some env vars are missing. Load your .env first:{RESET}")
+    print("  export $(cat .env | xargs)  # Linux/Mac")
+    print("  or run: python -m dotenv run python test_my_stuff.py")
     sys.exit(1)
 
 
@@ -102,7 +98,7 @@ try:
     from app.services.kavachbrain.traffic_block import check_traffic
     reading = check_traffic("Bangalore")
     ok(f"API responded — current={reading.current_speed} km/h  free_flow={reading.free_flow_speed} km/h  source={reading.source}")
-    info(f"Ratio: {reading.ratio}  (triggers if < 0.3)")
+    info(f"Ratio: {reading.ratio}  (trigger if < 0.3)")
     info(f"Traffic triggered: {reading.triggered}  delay={reading.delay_minutes} min")
     if reading.source == "tomtom":
         ok("Real TomTom data received")
@@ -136,7 +132,7 @@ except Exception as e:
     fail(f"Risk scoring failed: {e}")
 
 
-# ── 6. FRAUD — LAYER LOGIC ────────────────────────────────────────────────────
+# ── 6. FRAUD — MOCK LAYER TEST ────────────────────────────────────────────────
 
 header("6. Fraud Detection — Layer Logic (no DB needed)")
 
@@ -145,6 +141,7 @@ try:
     from app.services.kavachbrain.traffic_block import _severity as traffic_severity
     from app.services.kavachbrain.cyclone_guard import _severity as cyclone_severity
 
+    # Test severity functions directly
     ok(f"Cyclone severity at 75 km/h  = {cyclone_severity(75.0):.3f}  (expect > 0)")
     ok(f"Cyclone severity at 40 km/h  = {cyclone_severity(40.0):.3f}  (expect 0.0)")
     ok(f"Traffic severity ratio=0.1   = {traffic_severity(0.1):.3f}  (expect > 0)")
@@ -155,16 +152,16 @@ except Exception as e:
     fail(f"Fraud layer logic test failed: {e}")
 
 
-# ── 7. KAVACHBRAIN — SINGLE TICK ──────────────────────────────────────────────
+# ── 7. KAVACHBRAIN — SINGLE TICK (needs DB) ───────────────────────────────────
 
-header("7. KavachBrain — Single Tick (writes to Supabase)")
+header("7. KavachBrain — Single Tick (requires Supabase)")
 
 run_tick = input(f"\n  {YELLOW}Run a full KavachBrain tick against your Supabase DB? (y/n): {RESET}").strip().lower()
 
 if run_tick == "y":
     try:
         from app.services.kavachbrain.engine import _run_tick
-        info("Running tick — watch for FIRED events below …")
+        info("Running tick — watch for FIRED events in output below …")
         print()
         _run_tick()
         print()
@@ -173,7 +170,7 @@ if run_tick == "y":
     except Exception as e:
         fail(f"Tick failed: {e}")
 else:
-    info("Skipped")
+    info("Skipped — run manually: from app.services.kavachbrain.engine import _run_tick; _run_tick()")
 
 
 # ── Summary ───────────────────────────────────────────────────────────────────
