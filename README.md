@@ -203,7 +203,14 @@ Flagged ≠ Rejected. A driver whose phone dropped signal in a storm goes into a
 ```
 
 ---
+## ⚠️ Coverage Exclusions
+- Driver was not actively registered for that week's subscription
+- Event did not meet the minimum threshold duration
+- Driver's city zone not in the covered region for that trigger
+- Fraud flag not cleared within the 24-hour review window
+- Force majeure events outside the three defined trigger categories
 
+---
 ## 🏗️ Architecture
 
 ![WhatsApp Image 2026-03-19 at 22 38 39](https://github.com/user-attachments/assets/02667f7c-5450-42c8-8a0d-efc497739c61)
