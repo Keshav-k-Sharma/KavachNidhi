@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:frontend/core/auth/auth_controller.dart';
 import 'package:frontend/core/router/app_router.dart';
 import 'package:frontend/features/home/presentation/home_dashboard_page.dart';
+import 'package:frontend/features/subscriptions/presentation/subscriptions_tab.dart';
 
 class MainShellPage extends StatefulWidget {
   const MainShellPage({super.key});
@@ -24,7 +25,7 @@ class _MainShellPageState extends State<MainShellPage> {
         index: _currentIndex,
         children: const <Widget>[
           _DashboardTab(),
-          _PlaceholderTab(title: 'Subscriptions', icon: Icons.loyalty_rounded),
+          SubscriptionsTab(),
           _ProfileTab(),
           _PlaceholderTab(title: 'Wallet', icon: Icons.account_balance_wallet_rounded),
         ],
