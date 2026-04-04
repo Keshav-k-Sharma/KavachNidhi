@@ -1,73 +1,49 @@
 {
-  description = "A basic project in flutter";
+  description = "Flutter frontend (Android via Nix-composed SDK)";
 
   inputs = {
-    flake-utils = {
-      url = "github:numtide/flake-utils";
-    };
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
-    android-nixpkgs = {
-      url = "github:tadfisher/android-nixpkgs";
-    };
+    flake-utils.url = "github:numtide/flake-utils";
+    android-nixpkgs.url = "github:tadfisher/android-nixpkgs";
   };
 
-  outputs = { self, nixpkgs, flake-utils, flake-compat, android-nixpkgs }:
-    flake-utils.lib.eachDefaultSystem ( system:
-      let
-        pkgs = import nixpkgs {
-          inherit system;
-          config = {
-            allowUnfree = true;
-            android_sdk = {
-              accept_license = true;
-            };
+  outputs = { self, nixpkgs, flake-utils, android-nixpkgs }:
+    flake-utils.lib.eachDefaultSystem (system: let
+      pkgs = import nixpkgs {
+        inherit system;
+        config = {
+          allowUnfree = true;
+          android_sdk = {
+            accept_license = true;
           };
         };
-        androidCustomPackage = android-nixpkgs.sdk.${system} (
-          sdkPkgs: with sdkPkgs; [
-            cmdline-tools-latest
-            build-tools-30-0-3
-            build-tools-33-0-2
-            build-tools-34-0-0
-            platform-tools
-            emulator
-            #patcher-v4
-            platforms-android-28
-            platforms-android-29
-            platforms-android-30
-            platforms-android-31
-            platforms-android-32
-            platforms-android-33
-            platforms-android-34
-          ]
-        );
-        pinnedJDK = pkgs.jdk17; # jdk11, jdk13
-      in {
-        devShells = {
-          default = pkgs.mkShell {
-            name = "My-flutter-dev-shell";
-            buildInputs = with pkgs; [
-              flutter
-              android-studio
-            ] ++ [
-              pinnedJDK
-              #androidEnvCustomPackage.androidsdk
-              androidCustomPackage
-            ];
-            #shellHook = ''
-            #  GRADLE_USER_HOME=$HOME/gradle-user-home
-            #  GRADLE_HOME=$HOME/gradle-home
-            #'';
-            JAVA_HOME = pinnedJDK;
-            ANDROID_HOME = "${androidCustomPackage}/share/android-sdk";
-            ANDROID_SDK_HOME = "${androidCustomPackage}/share/android-sdk";
-            GRADLE_USER_HOME = "/home/admin0101/.gradle";
-            GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${androidCustomPackage}/share/android-sdk/build-tools/34.0.0/aapt2";
-          };
-        };
-      }
-    );
+      };
+      pinnedJDK = pkgs.jdk17;
+      androidSdk = android-nixpkgs.sdk.${system} (
+        sdkPkgs: with sdkPkgs; [
+          cmdline-tools-latest
+          platform-tools
+          build-tools-35-0-0
+          platforms-android-34
+          platforms-android-35
+          platforms-android-36
+          ndk-28-2-13676358
+          cmake-3-22-1
+        ]
+      );
+    in {
+      devShells.default = pkgs.mkShell {
+        name = "frontend-flutter";
+        buildInputs =
+          (with pkgs; [flutter pinnedJDK])
+          ++ [androidSdk];
+        shellHook = ''
+          export GRADLE_USER_HOME="''${HOME}/.gradle"
+          export ANDROID_USER_HOME="''${HOME}/.android"
+          export ANDROID_SDK_HOME="''${HOME}"
+        '';
+        JAVA_HOME = pinnedJDK;
+        ANDROID_HOME = "${androidSdk}/share/android-sdk";
+        GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${androidSdk}/share/android-sdk/build-tools/35.0.0/aapt2";
+      };
+    });
 }
