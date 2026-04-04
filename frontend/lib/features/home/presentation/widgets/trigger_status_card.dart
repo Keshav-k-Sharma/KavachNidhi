@@ -69,7 +69,7 @@ class TriggerStatusCard extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'NaN',
+                '—',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,

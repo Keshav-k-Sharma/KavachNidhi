@@ -14,8 +14,8 @@ class HomeDashboardPage extends StatefulWidget {
 
   final DashboardSnapshot dashboard;
 
-  static Widget route() {
-    return const _HomeDashboardLoader();
+  static Widget route({Key? key}) {
+    return _HomeDashboardLoader(key: key);
   }
 
   @override
@@ -757,10 +757,10 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/// Formats a dashboard amount for display; [double.nan] becomes `"NaN"`.
+/// Formats a dashboard amount for display; [double.nan] becomes `—`.
 String formatDashboardNumber(double value) {
   if (value.isNaN) {
-    return 'NaN';
+    return '—';
   }
   final int rounded = value.round();
   final String s = rounded.abs().toString();
@@ -779,14 +779,14 @@ String formatDashboardNumber(double value) {
 
 String formatCountdownSegment(double value) {
   if (value.isNaN) {
-    return 'NaN';
+    return '--';
   }
   return value.round().toString().padLeft(2, '0');
 }
 
 String formatCyclePercentLabel(double percent) {
   if (percent.isNaN) {
-    return 'NaN%';
+    return '—';
   }
   return '${percent.round()}%';
 }
@@ -795,7 +795,7 @@ class CurrencyFormat {
   const CurrencyFormat();
   String format(double value) {
     if (value.isNaN) {
-      return '₹ NaN';
+      return '—';
     }
     return '₹ ${formatDashboardNumber(value)}';
   }
@@ -905,7 +905,7 @@ class _GradientProgressBar extends StatelessWidget {
         child: Align(
           alignment: Alignment.center,
           child: Text(
-            'NaN',
+            '—',
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w700,
@@ -952,7 +952,7 @@ class _GradientProgressBar extends StatelessWidget {
 // ─── Loader ───────────────────────────────────────────────────────────────────
 
 class _HomeDashboardLoader extends StatefulWidget {
-  const _HomeDashboardLoader();
+  const _HomeDashboardLoader({super.key});
 
   @override
   State<_HomeDashboardLoader> createState() => _HomeDashboardLoaderState();

@@ -6,6 +6,33 @@ from app.database import supabase
 router = APIRouter(prefix="/wallet", tags=["Wallet"])
 
 
+def _to_float(value):
+    if value is None:
+        return 0.0
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return 0.0
+    return 0.0
+
+
+def _normalize_wallet_payload(wallet: dict) -> dict:
+    shield = _to_float(wallet.get("shield_credits"))
+    pending = _to_float(
+        wallet.get("pending_credits") or wallet.get("pending_validation_credits")
+    )
+    cleared = _to_float(wallet.get("cleared_credits") or wallet.get("cleared_balance"))
+
+    merged = dict(wallet)
+    merged["shield_credits"] = shield
+    merged["pending_credits"] = pending
+    merged["cleared_credits"] = cleared
+    return merged
+
+
 @router.get("/balance")
 def get_balance(driver_id: str = Depends(get_driver_id)):
     try:
@@ -20,7 +47,11 @@ def get_balance(driver_id: str = Depends(get_driver_id)):
         if not wallet.data:
             raise HTTPException(status_code=404, detail="Wallet not found")
 
-        return {"success": True, "data": wallet.data, "error": None}
+        return {
+            "success": True,
+            "data": _normalize_wallet_payload(wallet.data),
+            "error": None,
+        }
 
     except HTTPException as e:
         raise e
