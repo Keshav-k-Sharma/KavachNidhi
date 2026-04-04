@@ -59,6 +59,34 @@ class ApiClient {
     return res;
   }
 
+  Future<http.Response> putJson(
+    String path,
+    Map<String, dynamic> body, {
+    bool bearer = false,
+  }) async {
+    final http.Response res = await http.put(
+      _uri(path),
+      headers: _headers(withBearer: bearer),
+      body: jsonEncode(body),
+    );
+    _maybeHandleUnauthorized(res.statusCode, bearer);
+    return res;
+  }
+
+  Future<http.Response> deleteJson(
+    String path,
+    Map<String, dynamic> body, {
+    bool bearer = false,
+  }) async {
+    final http.Response res = await http.delete(
+      _uri(path),
+      headers: _headers(withBearer: bearer),
+      body: jsonEncode(body),
+    );
+    _maybeHandleUnauthorized(res.statusCode, bearer);
+    return res;
+  }
+
   Future<http.Response> get(
     String path, {
     bool bearer = false,

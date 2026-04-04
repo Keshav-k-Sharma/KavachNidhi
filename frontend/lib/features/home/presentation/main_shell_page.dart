@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:frontend/core/auth/auth_controller.dart';
 import 'package:frontend/core/router/app_router.dart';
 import 'package:frontend/features/home/presentation/home_dashboard_page.dart';
+import 'package:frontend/features/subscriptions/presentation/subscriptions_page.dart';
 
 class MainShellPage extends StatefulWidget {
   const MainShellPage({super.key});
@@ -16,17 +17,28 @@ class MainShellPage extends StatefulWidget {
 
 class _MainShellPageState extends State<MainShellPage> {
   int _currentIndex = 0;
+  int _dashboardRefreshToken = 0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: const <Widget>[
-          _DashboardTab(),
-          _PlaceholderTab(title: 'Subscriptions', icon: Icons.loyalty_rounded),
+        children: <Widget>[
+          _DashboardTab(refreshToken: _dashboardRefreshToken),
+          SubscriptionsPage(
+            onSubscriptionChanged: () {
+              if (!mounted) {
+                return;
+              }
+              setState(() => _dashboardRefreshToken++);
+            },
+          ),
           _ProfileTab(),
-          _PlaceholderTab(title: 'Wallet', icon: Icons.account_balance_wallet_rounded),
+          const _PlaceholderTab(
+            title: 'Wallet',
+            icon: Icons.account_balance_wallet_rounded,
+          ),
         ],
       ),
       bottomNavigationBar: _KavachBottomNav(
@@ -168,10 +180,14 @@ class _NavItem {
 // ─── Tab pages ────────────────────────────────────────────────────────────────
 
 class _DashboardTab extends StatelessWidget {
-  const _DashboardTab();
+  const _DashboardTab({required this.refreshToken});
+
+  final int refreshToken;
 
   @override
-  Widget build(BuildContext context) => HomeDashboardPage.route();
+  Widget build(BuildContext context) {
+    return HomeDashboardPage.route(key: ValueKey<int>(refreshToken));
+  }
 }
 
 class _ProfileTab extends StatelessWidget {

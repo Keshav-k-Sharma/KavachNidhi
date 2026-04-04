@@ -64,7 +64,7 @@ Future<DashboardSnapshot> stitchDashboardSnapshot({
 
   final String systemValue = risk != null
       ? _formatRiskDisplay(_readDouble(risk['risk_score']))
-      : 'NaN';
+      : '—';
 
   String nextDate = base.nextSettlementDate;
   String settlementLine = base.settlementTime;
@@ -135,7 +135,7 @@ double _readDouble(Object? raw) {
 
 String _formatRiskDisplay(double score) {
   if (score.isNaN) {
-    return 'NaN';
+    return '—';
   }
   final int pct = (score.clamp(0.0, 1.0) * 100).round();
   return '$pct% RISK';
@@ -176,7 +176,7 @@ String _compactDay(String day) {
 
 String _formatIntish(double v) {
   if (v.isNaN) {
-    return 'NaN';
+    return '—';
   }
   if (v == v.roundToDouble()) {
     return v.round().toString();
@@ -198,7 +198,7 @@ List<VerificationEvent> _verificationFromTransactions(List<dynamic>? rows) {
     final String title = _titleForTransactionType(type);
     final String subtitle = (m['description'] as String?) ?? type;
     final double amount = _readDouble(m['amount']);
-    final String impact = amount.isNaN ? 'NaN' : '₹ ${_formatIntish(amount)}';
+    final String impact = amount.isNaN ? '—' : '₹ ${_formatIntish(amount)}';
     final String timeAgo = _relativeTime(m['created_at']);
     final String iconKey = _iconKeyForTransactionType(type);
     out.add(
