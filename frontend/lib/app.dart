@@ -9,6 +9,10 @@ import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/router/app_router.dart';
 import 'package:frontend/core/theme/app_theme.dart';
 import 'package:frontend/features/auth/presentation/splash_page.dart';
+// new import for wallet
+import 'package:frontend/features/wallet/view/wallet_page.dart';
+// new import for payout
+import 'package:frontend/features/wallet/view/payout_page.dart';
 
 class KavachNidhiApp extends StatefulWidget {
   const KavachNidhiApp({super.key});
