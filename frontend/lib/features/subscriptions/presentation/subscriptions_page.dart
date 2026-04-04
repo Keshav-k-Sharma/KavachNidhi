@@ -6,10 +6,7 @@ import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/features/subscriptions/data/subscriptions_api.dart';
 
 class SubscriptionsPage extends StatefulWidget {
-  const SubscriptionsPage({
-    this.onSubscriptionChanged,
-    super.key,
-  });
+  const SubscriptionsPage({this.onSubscriptionChanged, super.key});
 
   final VoidCallback? onSubscriptionChanged;
 
@@ -34,8 +31,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     ),
     'plus': _TierMeta(
       icon: Icons.verified_user_rounded,
-      description:
-          'Dual-layer protection for unpredictable climate risks.',
+      description: 'Dual-layer protection for unpredictable climate risks.',
       features: <_TierFeature>[
         _TierFeature(
           icon: Icons.check_circle,
@@ -49,8 +45,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     ),
     'max': _TierMeta(
       icon: Icons.workspace_premium_rounded,
-      description:
-          'Full ecosystem coverage with enhanced payout multiples.',
+      description: 'Full ecosystem coverage with enhanced payout multiples.',
       features: <_TierFeature>[
         _TierFeature(icon: Icons.bolt, label: 'All 3 Triggers Unlocked'),
         _TierFeature(
@@ -67,6 +62,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   String? _error;
   List<Map<String, dynamic>> _tiers = const <Map<String, dynamic>>[];
   Map<String, dynamic>? _activeSubscription;
+  Map<String, dynamic>? _walletBalance;
+  Map<String, dynamic>? _mandateStatus;
 
   final TextEditingController _topUpController = TextEditingController();
 
@@ -95,19 +92,34 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
     try {
       final List<Object> results = await Future.wait<Object>(<Future<Object>>[
-        fetchSubscriptionTiers(apiClient),
-        fetchActiveSubscription(apiClient).then<Object>(
-          (Map<String, dynamic>? value) => value ?? <String, dynamic>{},
-        ),
+        fetchSubscriptionTiersResult(apiClient),
+        fetchActiveSubscriptionResult(apiClient),
+        fetchWalletBalanceResult(apiClient),
+        fetchMandateStatusResult(apiClient),
       ]);
       if (!mounted) {
         return;
       }
+      final ApiCallResult<List<Map<String, dynamic>>> tiersResult =
+          results[0] as ApiCallResult<List<Map<String, dynamic>>>;
+      final ApiCallResult<Map<String, dynamic>?> activeResult =
+          results[1] as ApiCallResult<Map<String, dynamic>?>;
+      final ApiCallResult<Map<String, dynamic>?> walletResult =
+          results[2] as ApiCallResult<Map<String, dynamic>?>;
+      final ApiCallResult<Map<String, dynamic>?> mandateResult =
+          results[3] as ApiCallResult<Map<String, dynamic>?>;
+
       setState(() {
-        _tiers = results[0] as List<Map<String, dynamic>>;
-        final Map<String, dynamic> active =
-            results[1] as Map<String, dynamic>;
-        _activeSubscription = active.isEmpty ? null : active;
+        _tiers = tiersResult.data ?? const <Map<String, dynamic>>[];
+        _activeSubscription = activeResult.data;
+        _walletBalance = walletResult.data;
+        _mandateStatus = mandateResult.data;
+        _error = _firstError(<String?>[
+          tiersResult.error,
+          activeResult.error,
+          walletResult.error,
+          mandateResult.error,
+        ]);
       });
     } catch (_) {
       if (!mounted) {
@@ -126,48 +138,87 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   Future<void> _subscribe(String tier) async {
     await _runMutation(
       successMessage: 'Subscription activated.',
-      action: (ApiClient apiClient) => subscribeTier(apiClient, tier: tier),
+      action: (ApiClient apiClient) =>
+          subscribeTierResult(apiClient, tier: tier),
     );
   }
 
   Future<void> _upgrade(String tier) async {
     await _runMutation(
       successMessage: 'Subscription upgraded.',
-      action: (ApiClient apiClient) => upgradeTier(apiClient, tier: tier),
+      action: (ApiClient apiClient) => upgradeTierResult(apiClient, tier: tier),
     );
   }
 
   Future<void> _cancel() async {
     await _runMutation(
       successMessage: 'Subscription cancelled.',
-      action: (ApiClient apiClient) => cancelTier(
-        apiClient,
-        reason: 'Cancelled from dashboard',
-      ),
+      action: (ApiClient apiClient) =>
+          cancelTierResult(apiClient, reason: 'Cancelled from dashboard'),
+    );
+  }
+
+  Future<void> _setupMandate() async {
+    await _runMutation(
+      successMessage:
+          'Mandate setup initiated. Complete authorization in payment app.',
+      action: (ApiClient apiClient) => createMandateResult(apiClient),
+    );
+  }
+
+  Future<void> _refreshWalletFromServer() async {
+    final String amountText = _topUpController.text.trim();
+    if (amountText.isEmpty || double.tryParse(amountText) == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid amount first.')),
+      );
+      return;
+    }
+    await _runReadAction(
+      action: (ApiClient apiClient) => fetchWalletBalanceResult(apiClient),
+      onSuccess: (Map<String, dynamic>? wallet) {
+        if (!mounted) {
+          return;
+        }
+        setState(() => _walletBalance = wallet);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Wallet refreshed from backend. Top-up checkout API is not available yet.',
+            ),
+          ),
+        );
+      },
     );
   }
 
   Future<void> _runMutation({
     required String successMessage,
-    required Future<Map<String, dynamic>?> Function(ApiClient apiClient)
-        action,
+    required Future<ApiCallResult<Map<String, dynamic>>> Function(
+      ApiClient apiClient,
+    )
+    action,
   }) async {
     final ApiClient apiClient = context.read<AuthController>().apiClient;
     setState(() => _mutating = true);
-    final Map<String, dynamic>? response = await action(apiClient);
+    final ApiCallResult<Map<String, dynamic>> response = await action(
+      apiClient,
+    );
     if (!mounted) {
       return;
     }
-    if (response == null) {
+    if (!response.success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Request failed. Please try again.')),
+        SnackBar(
+          content: Text(response.error ?? 'Request failed. Please try again.'),
+        ),
       );
       setState(() => _mutating = false);
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(successMessage)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(successMessage)));
     await _loadData();
     widget.onSubscriptionChanged?.call();
     if (!mounted) {
@@ -176,15 +227,51 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     setState(() => _mutating = false);
   }
 
+  Future<void> _runReadAction({
+    required Future<ApiCallResult<Map<String, dynamic>?>> Function(
+      ApiClient apiClient,
+    )
+    action,
+    required void Function(Map<String, dynamic>? data) onSuccess,
+  }) async {
+    final ApiClient apiClient = context.read<AuthController>().apiClient;
+    setState(() => _mutating = true);
+    final ApiCallResult<Map<String, dynamic>?> response = await action(
+      apiClient,
+    );
+    if (!mounted) {
+      return;
+    }
+    if (!response.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response.error ?? 'Request failed. Please try again.'),
+        ),
+      );
+      setState(() => _mutating = false);
+      return;
+    }
+    onSuccess(response.data);
+    setState(() => _mutating = false);
+  }
+
+  String _walletBalanceText() => _walletBalanceTextFromMap(_walletBalance);
+
+  String _effectiveMandateStatus() {
+    final String fromPayments = _asText(_mandateStatus?['status']);
+    if (fromPayments != '—') {
+      return fromPayments;
+    }
+    return _asText(_activeSubscription?['mandate_status']);
+  }
+
   // ─── Layout ─────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     if (_loading && _tiers.isEmpty) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -220,8 +307,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   Widget _buildHeroSection(ThemeData theme) {
     final Map<String, dynamic>? sub = _activeSubscription;
     final bool hasActive = sub != null;
-    final String walletBalance =
-        _moneyText(sub?['wallet_balance'] ?? sub?['cap_amount']);
+    final String walletBalance = _walletBalanceText();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
@@ -252,9 +338,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           Text(
             hasActive
                 ? 'Your digital safety net is currently active. '
-                    'Select a tier to adjust your weekly coverage and claim caps.'
+                      'Select a tier to adjust your weekly coverage and claim caps.'
                 : 'Select a tier below to activate your weekly '
-                    'coverage and claim caps.',
+                      'coverage and claim caps.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               height: 1.5,
@@ -288,7 +374,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      hasActive ? walletBalance : '0',
+                      walletBalance,
                       style: theme.textTheme.displayLarge?.copyWith(
                         fontWeight: FontWeight.w900,
                         letterSpacing: -2.4,
@@ -384,7 +470,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     final _TierMeta? meta = _tierMeta[tierKey];
     final bool isRecommended = tierKey == 'plus';
     final bool isCurrent = action.label == 'Current';
-    final bool isUpgrade = action.type == _TierActionType.upgrade && !action.disabled;
+    final bool isUpgrade =
+        action.type == _TierActionType.upgrade && !action.disabled;
     final String capAmount = _moneyText(tier['cap_amount']);
     final String baseRate = _moneyText(tier['base_rate']);
 
@@ -483,89 +570,85 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             ),
             const SizedBox(height: 16),
 
-                // Tier name
-                Text(
-                  'Kavach ${_prettyTier(tierKey)}',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 6),
+            // Tier name
+            Text(
+              'Kavach ${_prettyTier(tierKey)}',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
 
-                // Description
-                Text(
-                  meta?.description ?? '',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 16),
+            // Description
+            Text(
+              meta?.description ?? '',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
 
-                // Feature list
-                if (meta != null)
-                  ...meta.features.map((_TierFeature f) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: <Widget>[
-                          Icon(
-                            f.icon,
-                            size: 16,
-                            color: theme.colorScheme.tertiary,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              f.label,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-
-                // Payout cap row
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
+            // Feature list
+            if (meta != null)
+              ...meta.features.map((_TierFeature f) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     children: <Widget>[
-                      Icon(
-                        Icons.payments_outlined,
-                        size: 16,
-                        color: theme.colorScheme.secondary,
-                      ),
+                      Icon(f.icon, size: 16, color: theme.colorScheme.tertiary),
                       const SizedBox(width: 8),
-                      Text(
-                        '₹$capAmount Payout Cap',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: theme.colorScheme.secondary,
+                      Expanded(
+                        child: Text(
+                          f.label,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 18),
+                );
+              }),
 
-                // Action button
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: _buildTierButton(
-                    theme,
-                    action: action,
-                    tierKey: tierKey,
-                    isCurrent: isCurrent,
-                    isUpgrade: isUpgrade,
+            // Payout cap row
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.payments_outlined,
+                    size: 16,
+                    color: theme.colorScheme.secondary,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Text(
+                    '₹$capAmount Payout Cap',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: theme.colorScheme.secondary,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+            const SizedBox(height: 18),
+
+            // Action button
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: _buildTierButton(
+                theme,
+                action: action,
+                tierKey: tierKey,
+                isCurrent: isCurrent,
+                isUpgrade: isUpgrade,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -583,9 +666,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           backgroundColor: theme.colorScheme.primary,
           disabledBackgroundColor: theme.colorScheme.primary,
           disabledForegroundColor: theme.colorScheme.onPrimary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
         child: Text(
           'CURRENT PLAN',
@@ -605,9 +686,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         style: FilledButton.styleFrom(
           backgroundColor: theme.colorScheme.secondary,
           foregroundColor: theme.colorScheme.onSecondary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
         child: Text(
           _mutating ? 'PLEASE WAIT...' : 'UPGRADE NOW',
@@ -626,12 +705,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           ? null
           : () => _subscribe(tierKey),
       style: OutlinedButton.styleFrom(
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-        ),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       ),
       child: Text(
         _mutating
@@ -652,10 +727,12 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   // ─── Payment Mandates ───────────────────────────────────────────────────
 
   Widget _buildMandatesSection(ThemeData theme) {
-    final String mandateStatus =
-        _asText(_activeSubscription?['mandate_status']).toLowerCase();
+    final String mandateStatus = _effectiveMandateStatus().toLowerCase();
     final bool upiActive =
         mandateStatus.contains('active') || mandateStatus.contains('live');
+    final bool upiPending =
+        mandateStatus.contains('pending') || mandateStatus.contains('created');
+    final bool canSetup = !upiActive && !_mutating;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -672,7 +749,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           theme,
           icon: Icons.account_balance_rounded,
           title: 'UPI AutoPay',
-          subtitle: upiActive ? 'Active via PhonePe' : 'Not configured',
+          subtitle: upiActive
+              ? 'Active'
+              : (upiPending ? 'Setup in progress' : 'Not configured'),
           trailing: upiActive
               ? Container(
                   padding: const EdgeInsets.symmetric(
@@ -693,7 +772,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                     ),
                   ),
                 )
-              : null,
+              : TextButton(
+                  onPressed: canSetup ? _setupMandate : null,
+                  child: Text(upiPending ? 'RETRY' : 'SET UP'),
+                ),
         ),
         const SizedBox(height: 2),
         Divider(
@@ -705,12 +787,14 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           theme,
           icon: Icons.article_outlined,
           title: 'NACH Mandate',
-          subtitle: 'Pending Bank Approval',
-          trailing: Icon(
-            Icons.chevron_right_rounded,
-            color: theme.colorScheme.onSurfaceVariant,
-            size: 22,
-          ),
+          subtitle: _prettyStatus(_effectiveMandateStatus()),
+          trailing: upiActive
+              ? Icon(
+                  Icons.verified_rounded,
+                  color: theme.colorScheme.tertiary,
+                  size: 20,
+                )
+              : null,
         ),
       ],
     );
@@ -753,7 +837,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               ],
             ),
           ),
-          if (trailing != null) trailing,
+          ?trailing,
         ],
       ),
     );
@@ -829,7 +913,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             SizedBox(
               height: 48,
               child: FilledButton(
-                onPressed: () {},
+                onPressed: _mutating ? null : _refreshWalletFromServer,
                 style: FilledButton.styleFrom(
                   backgroundColor: theme.colorScheme.surfaceContainerHighest,
                   foregroundColor: theme.colorScheme.onSurface,
@@ -878,10 +962,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(8),
         border: Border(
-          left: BorderSide(
-            color: theme.colorScheme.error,
-            width: 3,
-          ),
+          left: BorderSide(color: theme.colorScheme.error, width: 3),
         ),
       ),
       child: Row(
@@ -912,7 +993,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                     ),
                     children: const <TextSpan>[
                       TextSpan(
-                        text: 'Due to standard banking maintenance, payout '
+                        text:
+                            'Due to standard banking maintenance, payout '
                             'failures occurring on ',
                       ),
                       TextSpan(
@@ -920,7 +1002,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                       TextSpan(
-                        text: ' will be automatically re-attempted on Monday '
+                        text:
+                            ' will be automatically re-attempted on Monday '
                             'morning at 09:00 AM. Your protection coverage '
                             'remains unaffected during this window.',
                       ),
@@ -938,8 +1021,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   // ─── Tier action logic ──────────────────────────────────────────────────
 
   _TierAction _actionForTier(String tierKey) {
-    final String? activeTier =
-        (_activeSubscription?['tier'] as String?)?.toLowerCase();
+    final String? activeTier = (_activeSubscription?['tier'] as String?)
+        ?.toLowerCase();
     if (activeTier == null) {
       return const _TierAction(
         label: 'Subscribe',
@@ -1028,6 +1111,41 @@ String _moneyText(Object? raw) {
     return raw.toStringAsFixed(2);
   }
   return raw.toString();
+}
+
+String? _firstError(List<String?> errors) {
+  for (final String? error in errors) {
+    if (error != null && error.trim().isNotEmpty) {
+      return error;
+    }
+  }
+  return null;
+}
+
+String _walletBalanceTextFromMap(Map<String, dynamic>? wallet) {
+  if (wallet == null) {
+    return '0';
+  }
+  final Object? value =
+      wallet['cleared_credits'] ??
+      wallet['cleared_balance'] ??
+      wallet['shield_credits'] ??
+      wallet['pending_credits'];
+  return _moneyText(value);
+}
+
+String _prettyStatus(String value) {
+  if (value.isEmpty || value == '—') {
+    return 'Not available';
+  }
+  final List<String> parts = value.split('_');
+  return parts
+      .map(
+        (String p) => p.isEmpty
+            ? p
+            : '${p[0].toUpperCase()}${p.substring(1).toLowerCase()}',
+      )
+      .join(' ');
 }
 
 String _asText(Object? value) {

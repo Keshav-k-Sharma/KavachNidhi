@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/core/network/api_response.dart';
+import 'package:frontend/features/subscriptions/data/subscriptions_api.dart'
+    as subscriptions_api;
 
 /// GET `/wallet/balance` — requires registered driver.
 Future<Map<String, dynamic>?> fetchWalletBalance(ApiClient client) async {
@@ -20,7 +22,10 @@ Future<Map<String, dynamic>?> fetchWalletBalance(ApiClient client) async {
 
 /// GET `/drivers/risk-score` — uses current user (driver id = user id).
 Future<Map<String, dynamic>?> fetchRiskScore(ApiClient client) async {
-  final http.Response res = await client.get('/drivers/risk-score', bearer: true);
+  final http.Response res = await client.get(
+    '/drivers/risk-score',
+    bearer: true,
+  );
   if (res.statusCode == 404 || res.statusCode == 401) {
     return null;
   }
@@ -33,15 +38,7 @@ Future<Map<String, dynamic>?> fetchRiskScore(ApiClient client) async {
 
 /// GET `/subscriptions/me` — active subscription or null data.
 Future<Map<String, dynamic>?> fetchActiveSubscription(ApiClient client) async {
-  final http.Response res = await client.get('/subscriptions/me', bearer: true);
-  if (res.statusCode == 404 || res.statusCode == 401) {
-    return null;
-  }
-  final ApiEnvelope<Map<String, dynamic>> env = ApiClient.parseEnvelope(res);
-  if (!env.success) {
-    return null;
-  }
-  return env.data;
+  return subscriptions_api.fetchActiveSubscription(client);
 }
 
 /// GET `/settlements/next` — requires registered driver.
