@@ -24,7 +24,7 @@ from app.api.fraud.router import router as fraud_router
 async def lifespan(app: FastAPI):
     start_scheduler()
     start_risk_scheduler()
-    start_kavachbrain()          # KavachBrain 60s loop
+    start_kavachbrain()
     yield
     stop_scheduler()
     stop_risk_scheduler()

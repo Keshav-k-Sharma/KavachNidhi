@@ -22,9 +22,9 @@ def get_tiers() -> list:
 
 def _get_risk_score(driver_id: str) -> float:
     try:
-        result = db.table("risk_scores").select("score").eq("driver_id", driver_id).limit(1).execute()
+        result = db.table("risk_scores").select("composite_score").eq("driver_id", driver_id).limit(1).execute()
         if result.data:
-            return result.data[0]["score"]
+            return result.data[0]["composite_score"]
     except Exception:
         pass
     return 0.5
